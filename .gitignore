@@ -1,0 +1,8 @@
+.DS_Store
+Private/
+PDFUtil.app/Contents/Frameworks/
+PDFUtil.app/Contents/MacOS/
+PDFUtil.app/Contents/Helpers/
+PDFUtil.app/Contents/_CodeSignature/
+Tests/fixtures/
+Tests/tmp/
