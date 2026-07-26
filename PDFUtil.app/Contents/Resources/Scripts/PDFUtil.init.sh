@@ -6,6 +6,11 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
 # Start with an empty file list
 "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
 
+# A picker fires no action for the value it starts with, so the first settings
+# panel has to be set up here or it would come up with an empty structure
+# notice.
+apply_operation_panel "$(current_operation)"
+
 pdfutil_version="$("$PDFUTIL" --version 2>/dev/null | /usr/bin/head -1)"
 set_summary "Drop PDF files or images into the list, pick an operation, then press Save.
 

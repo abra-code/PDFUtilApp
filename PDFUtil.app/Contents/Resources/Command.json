@@ -139,8 +139,70 @@
     },
     {
       "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.render.format.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.start.batch",
       "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.single",
+      "EXECUTION_MODE": "exe_script_file",
+      "SAVE_AS_DIALOG": {
+        "MESSAGE": "Save PDF as",
+        "DEFAULT_FILE_NAME": [
+          "Output.pdf"
+        ],
+        "BUTTON_PROMPT": "Save"
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.text",
+      "EXECUTION_MODE": "exe_script_file",
+      "SAVE_AS_DIALOG": {
+        "MESSAGE": "Save text as",
+        "DEFAULT_FILE_NAME": [
+          "Output.txt"
+        ],
+        "BUTTON_PROMPT": "Save"
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.image",
+      "EXECUTION_MODE": "exe_script_file",
+      "SAVE_AS_DIALOG": {
+        "MESSAGE": "Save image as",
+        "DEFAULT_FILE_NAME": [
+          "Page.png"
+        ],
+        "BUTTON_PROMPT": "Save"
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.batch",
+      "EXECUTION_MODE": "exe_script_file",
+      "CHOOSE_FOLDER_DIALOG": {
+        "MESSAGE": "Select destination folder",
+        "BUTTON_PROMPT": "Run"
+      },
       "ENVIRONMENT_VARIABLES": {
         "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
       }

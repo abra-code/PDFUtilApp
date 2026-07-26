@@ -42,21 +42,19 @@ fi
 
 echo "--- Document ---"
 
-# Every pdfutil verb that reads a document accepts --password; pass the
-# per-run input password (control 125) when the user has supplied one, and
-# report the exit code rather than guessing from stderr, which pdfutil also
+# Report the exit code rather than guessing from stderr, which pdfutil also
 # uses for harmless PDFKit log lines on permission-restricted files.
-pw="$(input_password)"
-if [ -n "$pw" ]; then
-    "$PDFUTIL" info --password "$pw" "$selected_path" 2>&1
-else
-    "$PDFUTIL" info "$selected_path" 2>&1
-fi
+"$PDFUTIL" info "$selected_path" 2>&1
 info_status=$?
 
 if [ $info_status -ne 0 ]; then
     echo ""
-    echo "pdfutil info exited $info_status."
-    echo "If this PDF is password-protected, type the password into the"
-    echo "Password field in the main window and try again."
+    if pdf_is_locked "$selected_path"; then
+        echo "This PDF is password-protected, so none of its details can be read"
+        echo "and every operation except Remove Password will refuse it."
+        echo ""
+        echo "Pick Remove Password, enter the password, and save an unlocked copy."
+    else
+        echo "pdfutil info exited $info_status; this PDF could not be read."
+    fi
 fi
