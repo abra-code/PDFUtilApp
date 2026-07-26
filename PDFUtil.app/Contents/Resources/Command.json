@@ -4,12 +4,151 @@
       "NAME": "PDFUtil",
       "ACTIVATION_MODE": "act_always",
       "EXECUTION_MODE": "exe_script_file",
-      "ACTIONUI_WINDOW": {
-        "JSON_NAME": "Window",
-        "IS_BLOCKING": false
+      "NEXT_COMMAND_ID": "PDFUtil.new",
+      "MULTIPLE_OBJECT_SETTINGS": {
+        "SEPARATOR": "\\n",
+        "PROCESSING_MODE": "proc_together",
+        "SORT_METHOD": "sort_by_name"
       },
       "REQUIRED_OMC_VERSION": "5.1",
       "REQUIRED_MAC_OS_MIN_VERSION": "14.6"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.new",
+      "EXECUTION_MODE": "exe_shell_script",
+      "ACTIONUI_WINDOW": {
+        "JSON_NAME": "PDFUtil",
+        "INIT_SUBCOMMAND_ID": "PDFUtil.init",
+        "END_CANCEL_SUBCOMMAND_ID": "PDFUtil.cancel",
+        "IS_BLOCKING": false
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.open",
+      "EXECUTION_MODE": "exe_script_file",
+      "CHOOSE_OBJECT_DIALOG": {
+        "ALLOWED_CONTENT_TYPES": [
+          "com.adobe.pdf",
+          "public.image",
+          "public.folder"
+        ],
+        "ALLOW_MULTIPLE_ITEMS": true,
+        "MESSAGE": "Select PDF files, images or folders",
+        "USE_PATH_CACHING": false
+      },
+      "MULTIPLE_OBJECT_SETTINGS": {
+        "SEPARATOR": "\\n",
+        "PROCESSING_MODE": "proc_together",
+        "SORT_METHOD": "sort_by_name"
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.init",
+      "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.add.files",
+      "EXECUTION_MODE": "exe_script_file",
+      "CHOOSE_OBJECT_DIALOG": {
+        "ALLOWED_CONTENT_TYPES": [
+          "com.adobe.pdf",
+          "public.image",
+          "public.folder"
+        ],
+        "ALLOW_MULTIPLE_ITEMS": true,
+        "MESSAGE": "Select PDF files or images to add",
+        "USE_PATH_CACHING": false
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.files.drop",
+      "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.files.selection.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.files.double.click",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.remove.selected",
+      "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.clear.all",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.reveal.in.finder",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.info",
+      "EXECUTION_MODE": "exe_script_file_with_output_window"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.quicklook",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.quicklook.window",
+      "EXECUTION_MODE": "exe_shell_script",
+      "ACTIONUI_WINDOW": {
+        "JSON_NAME": "PDFUtilQuickLook",
+        "INIT_SUBCOMMAND_ID": "PDFUtil.quicklook.init",
+        "IS_BLOCKING": false,
+        "WINDOW_TITLE": "Quick Look"
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.quicklook.init",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.operation.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.start.batch",
+      "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.cancel",
+      "EXECUTION_MODE": "exe_script_file"
     }
   ],
   "VERSION": 2

@@ -1,9 +1,13 @@
 [
   {
-    "type": "CommandMenu",
-    "properties": {
-      "name": "Commands",
-      "autoPopulate": true
-    }
+    "type": "CommandGroup",
+    "properties": { "placement": "replacing", "placementTarget": "open" },
+    "children": [
+      { "type": "Button", "properties": {
+          "title": "Open...",
+          "actionID": "PDFUtil.open",
+          "keyboardShortcut": { "key": "o" }
+      } }
+    ]
   }
 ]

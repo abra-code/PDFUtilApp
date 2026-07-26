@@ -1,0 +1,259 @@
+{
+  "type": "NavigationSplitView",
+  "id": 100,
+  "properties": {
+    "columnVisibility": "all",
+    "style": "balanced",
+    "frame": { "minWidth": 900, "minHeight": 560, "idealWidth": 1040, "idealHeight": 680 },
+    "padding": { "top": 4 }
+  },
+  "sidebar": {
+    "type": "VStack",
+    "properties": {
+      "spacing": 8,
+      "navigationSplitViewColumnWidth": { "min": 240, "ideal": 300, "max": 380 }
+    },
+    "children": [
+      {
+        "type": "Table",
+        "id": 10,
+        "properties": {
+          "columns": ["", "Files"],
+          "columnTypes": [
+            { "viewType": "Image", "dataInterpretation": "systemName" },
+            { "viewType": "Text" }
+          ],
+          "widths": [28, 300],
+          "minWidths": [20, 160],
+          "actionID": "PDFUtil.files.selection.changed",
+          "doubleClickActionID": "PDFUtil.files.double.click",
+          "onDropTypes": ["public.file-url", "public.folder"],
+          "onDropActionID": "PDFUtil.files.drop"
+        }
+      },
+      {
+        "type": "HStack",
+        "properties": { "spacing": 0 },
+        "children": [
+          {
+            "type": "Button",
+            "id": 101,
+            "properties": {
+              "systemImage": "plus.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.add.files",
+              "frame": { "width": 32, "height": 32 },
+              "help": "Add PDF files, images or folders"
+            }
+          },
+          {
+            "type": "Button",
+            "id": 102,
+            "properties": {
+              "systemImage": "minus.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.remove.selected",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 },
+              "help": "Remove the selected file from the list"
+            }
+          },
+          {
+            "type": "Divider",
+            "properties": {
+              "padding": { "top": 0, "leading": 8, "bottom": 0, "trailing": 8 },
+              "frame": { "height": 16 }
+            }
+          },
+          {
+            "type": "Button",
+            "id": 105,
+            "properties": {
+              "systemImage": "eye",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.quicklook",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 },
+              "help": "Preview with Quick Look"
+            }
+          },
+          {
+            "type": "Button",
+            "id": 104,
+            "properties": {
+              "systemImage": "folder",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.reveal.in.finder",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 },
+              "help": "Reveal in Finder"
+            }
+          },
+          {
+            "type": "Button",
+            "id": 106,
+            "properties": {
+              "systemImage": "info.circle",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.info",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 },
+              "help": "Show file details"
+            }
+          },
+          { "type": "Spacer" },
+          {
+            "type": "Button",
+            "id": 103,
+            "properties": {
+              "systemImage": "trash.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.clear.all",
+              "frame": { "width": 32, "height": 32 },
+              "help": "Clear the list"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "detail": {
+    "type": "VStack",
+    "properties": {
+      "spacing": 12,
+      "alignment": "leading",
+      "frame": { "minWidth": 500, "idealWidth": 580 },
+      "padding": { "leading": 8, "trailing": 8, "top": 8 }
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "properties": { "spacing": 12 },
+        "children": [
+          { "type": "Spacer" },
+          {
+            "type": "Picker",
+            "id": 60,
+            "properties": {
+              "title": "Operation",
+              "pickerStyle": "menu",
+              "options": [
+                { "section": "Size & Convert" },
+                { "title": "Reduce File Size", "tag": "reduce" },
+                { "title": "Linearize (fast web view)", "tag": "linearize" },
+                { "title": "Convert to PDF/A", "tag": "pdfa" },
+                { "section": "Pages" },
+                { "title": "Extract or Reorder", "tag": "extract" },
+                { "title": "Delete Pages", "tag": "delete" },
+                { "title": "Rotate", "tag": "rotate" },
+                { "title": "Crop", "tag": "crop" },
+                { "title": "Split", "tag": "split" },
+                { "title": "Merge", "tag": "merge" },
+                { "section": "Content" },
+                { "title": "Watermark", "tag": "watermark" },
+                { "title": "Flatten", "tag": "flatten" },
+                { "title": "Fill Form", "tag": "forms" },
+                { "title": "Edit Metadata", "tag": "metadata" },
+                { "section": "Security" },
+                { "title": "Set Password", "tag": "encrypt" },
+                { "title": "Remove Password", "tag": "decrypt" },
+                { "section": "Export" },
+                { "title": "Export Page Images", "tag": "render" },
+                { "title": "Extract Text", "tag": "text" },
+                { "title": "OCR", "tag": "ocr" },
+                { "section": "Create" },
+                { "title": "Build PDF from Images", "tag": "frompages" },
+                { "section": "Inspect" },
+                { "title": "Document Info / Outline / Fields / Search", "tag": "inspect" }
+              ],
+              "actionID": "PDFUtil.operation.changed"
+            }
+          },
+          { "type": "Spacer" }
+        ]
+      },
+      {
+        "type": "HStack",
+        "properties": { "spacing": 8 },
+        "children": [
+          {
+            "type": "Text",
+            "properties": {
+              "text": "Password",
+              "frame": { "width": 70, "alignment": "trailing" }
+            }
+          },
+          {
+            "type": "SecureField",
+            "id": 125,
+            "properties": {
+              "prompt": "Password of the input files, if any",
+              "frame": { "maxWidth": 320 }
+            }
+          },
+          { "type": "Spacer" }
+        ]
+      },
+      {
+        "type": "ZStack",
+        "id": 199,
+        "properties": { "alignment": "top" },
+        "children": [
+          {
+            "type": "Text",
+            "id": 198,
+            "properties": {
+              "text": "Settings for the selected operation appear here.",
+              "foregroundStyle": "secondary",
+              "font": "callout",
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999, "alignment": "center" }
+            }
+          }
+        ]
+      },
+      {
+        "type": "GroupBox",
+        "properties": {
+          "title": "Summary",
+          "padding": "default",
+          "frame": { "minWidth": 440, "maxWidth": 99999, "minHeight": 140, "maxHeight": 99999 }
+        },
+        "children": [
+          {
+            "type": "TextEditor",
+            "id": 12,
+            "properties": {
+              "readOnly": true,
+              "font": { "size": 11, "design": "monospaced" },
+              "scrollContentBackground": "hidden",
+              "frame": { "minHeight": 120, "maxWidth": 99999, "maxHeight": 99999 }
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "properties": { "spacing": 12, "padding": "default" },
+        "children": [
+          { "type": "Spacer" },
+          {
+            "type": "Button",
+            "id": 90,
+            "properties": {
+              "title": "Save",
+              "buttonStyle": "borderedProminent",
+              "actionID": "PDFUtil.start.batch"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
