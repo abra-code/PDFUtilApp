@@ -6,5 +6,7 @@
 # path; the work is in run_save_as, which the .txt and image runners share.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.run.sh"
 
 run_save_as

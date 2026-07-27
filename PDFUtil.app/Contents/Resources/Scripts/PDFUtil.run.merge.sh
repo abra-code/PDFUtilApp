@@ -13,6 +13,42 @@
 # Reorder on the individual files first covers the same ground.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.run.sh"
+
+# --- handler-local functions ---------------------------------------------
+# The merge runner's own pdfutil wrapper
+#
+# These live here rather than in a shared lib because this handler is their
+# only caller. A shared lib is for logic several handlers use; a single-use
+# function in it just makes the lib bigger and its readers guess who calls it.
+#
+# The markers around this block are load-bearing: the unit-test harness pulls
+# the definitions out with them so it can call these directly, without running
+# the handler body below.
+# ---------------------------------------------------------------------------
+# Merge's own call path: N inputs, one output, so it cannot use run_pdfutil's
+# single-input shape. The -o and --force invariants are repeated here rather
+# than skipped - merge without --force fails against the staging file, and
+# merge without -o is a usage error rather than an in-place edit.
+#
+# Arguments: output, then one or more input paths
+run_pdfutil_merge() {
+    local out="$1"
+    shift
+    if [ -z "$out" ]; then
+        echo "internal error: refusing to run merge without an output path"
+        return 1
+    fi
+    if [ $# -eq 0 ]; then
+        echo "internal error: merge needs at least one input"
+        return 1
+    fi
+    "$PDFUTIL" merge "${PDFUTIL_ARGS[@]}" --force -o "$out" "$@" 2>&1
+}
+
+# --- end handler-local functions -----------------------------------------
 
 output_file="$OMC_DLG_SAVE_AS_PATH"
 if [ -z "$output_file" ]; then

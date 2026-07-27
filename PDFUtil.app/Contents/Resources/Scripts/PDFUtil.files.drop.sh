@@ -2,6 +2,7 @@
 # PDFUtil.files.drop.sh - Handle files dropped onto the file table
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.files.sh"
 
 plister="$OMC_OMC_SUPPORT_PATH/plister"
 

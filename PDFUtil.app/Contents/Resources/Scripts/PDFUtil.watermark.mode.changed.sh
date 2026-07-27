@@ -6,5 +6,6 @@
 # all three out of play so none of them can reach the builder.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 apply_watermark_mode_state

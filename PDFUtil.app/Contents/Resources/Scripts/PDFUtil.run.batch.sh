@@ -11,6 +11,30 @@
 # a PDF needs no change here.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.run.sh"
+
+# --- handler-local functions ---------------------------------------------
+# Output-name helper
+#
+# These live here rather than in a shared lib because this handler is their
+# only caller. A shared lib is for logic several handlers use; a single-use
+# function in it just makes the lib bigger and its readers guess who calls it.
+#
+# The markers around this block are load-bearing: the unit-test harness pulls
+# the definitions out with them so it can call these directly, without running
+# the handler body below.
+# ---------------------------------------------------------------------------
+# Echo a file's name without its extension.
+path_stem() {
+    local base="$(/usr/bin/basename "$1")"
+    case "$base" in
+        *.*) echo "${base%.*}" ;;
+        *)   echo "$base" ;;
+    esac
+}
+
+# --- end handler-local functions -----------------------------------------
 
 destination="$OMC_DLG_CHOOSE_FOLDER_PATH"
 if [ -z "$destination" ]; then

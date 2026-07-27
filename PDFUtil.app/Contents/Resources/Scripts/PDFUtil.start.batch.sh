@@ -22,6 +22,353 @@
 # but getting it right is what makes Save As available at all.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
+
+# --- handler-local functions ---------------------------------------------
+# Settings validation and the structure pre-flight
+#
+# These live here rather than in a shared lib because this handler is their
+# only caller. A shared lib is for logic several handlers use; a single-use
+# function in it just makes the lib bigger and its readers guess who calls it.
+#
+# The markers around this block are load-bearing: the unit-test harness pulls
+# the definitions out with them so it can call these directly, without running
+# the handler body below.
+# ---------------------------------------------------------------------------
+# Return 0 when an operation reaches its result by REDRAWING the page content,
+# which discards annotations, links, the outline and form fields.
+#
+# Measured rather than assumed - each verb was run against a fixture with an
+# outline and one with form fields, and the output re-read with `info` and
+# `forms --list`:
+#
+#   reduce, linearize, pdfa, watermark (burn-in)  outline AND fields lost
+#   watermark --annotation                        both kept
+#   ocr --searchable                              both kept
+#   flatten                                       outline kept, fields removed
+#
+# flatten is deliberately absent: removing the fields is what the user asked
+# for, so warning about it would be warning about the operation succeeding. Its
+# section text explains the effect instead.
+#
+# linearize and pdfa are listed although their panels arrive in a later stage:
+# the measurement is done and the table is the thing that must not go stale.
+# frompages joins them when it lands, but only for PDF inputs.
+#
+# Arguments: operation tag
+operation_redraws() {
+    case "$1" in
+        reduce | linearize | pdfa)
+            return 0
+            ;;
+        watermark)
+            # Annotation mode is the structure-preserving alternative, so the
+            # toggle decides. Unset means the toggle's declared isOn, which is
+            # off - burn-in, the mode that redraws.
+            if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+                return 1
+            fi
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+
+# Echo why the chosen operation cannot run with the settings as they stand, or
+# "" when it can. The router turns a non-empty answer into an alert.
+#
+# These are the checks that must happen before a destination is chosen, because
+# the alternative is asking for a filename and only then reporting that the
+# passwords disagreed - by which point the user has committed to a location for
+# a file that was never going to be written.
+# Arguments: operation tag
+settings_problem() {
+    case "$1" in
+        encrypt) encrypt_settings_problem ;;
+        decrypt)
+            if [ -z "$OMC_ACTIONUI_VIEW_122_VALUE" ]; then
+                echo "Enter the password that opens these PDFs.
+
+pdfutil treats an empty password as a usage error rather than as a blank password."
+            fi
+            ;;
+        extract)
+            if [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_140_VALUE")" ]; then
+                echo "Enter the pages to keep, for example 1-5,8 or 3,1,2 to reorder."
+            fi
+            ;;
+        delete)
+            if [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_141_VALUE")" ]; then
+                echo "Enter the pages to remove, for example 2 or 4-6."
+            fi
+            ;;
+        crop)
+            local v="$(trim_spaces "$OMC_ACTIONUI_VIEW_186_VALUE")"
+            if [ -z "$v" ]; then
+                echo "Enter four comma-separated numbers in points."
+            elif ! printf '%s' "$v" | \
+                 /usr/bin/grep -Eq '^-?[0-9]+(\.[0-9]+)?(,-?[0-9]+(\.[0-9]+)?){3}$'; then
+                echo "Crop needs exactly four comma-separated numbers in points, for example 36,36,36,36.
+
+\"${v}\" is not in that form."
+            fi
+            ;;
+        watermark) watermark_settings_problem ;;
+    esac
+}
+
+# Echo why Watermark cannot run, or "" when it can.
+watermark_settings_problem() {
+    local text="$(trim_spaces "$OMC_ACTIONUI_VIEW_160_VALUE")"
+    local image="$(trim_spaces "$OMC_ACTIONUI_VIEW_161_VALUE")"
+
+    if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+        # The image field is disabled in this mode but can still hold a path
+        # from before the toggle was flipped, and build_pdfutil_args drops it
+        # rather than passing --image into a usage error.
+        #
+        # Refused whether or not there is text to fall back on. Dropping it
+        # silently when text happens to be filled in would make the outcome
+        # depend on a field the user is not looking at, and it is the same
+        # ambiguity the burn-in branch below refuses outright - one mark was
+        # asked for and two were described. Making the user clear one of them
+        # is the same answer in both modes.
+        if [ -n "$image" ]; then
+            echo "An annotation watermark is text-only, so the chosen image cannot be used.
+
+Clear the image field, or turn the annotation option off to stamp the image instead."
+            return
+        fi
+        if [ -z "$text" ]; then
+            echo "Enter the text to stamp."
+        fi
+        return
+    fi
+
+    if [ -z "$text" ] && [ -z "$image" ]; then
+        echo "Enter the text to stamp, or choose an image."
+        return
+    fi
+    # pdfutil rejects the pair outright (exit 1) rather than picking one.
+    if [ -n "$text" ] && [ -n "$image" ]; then
+        echo "Stamp either text or an image, not both.
+
+Clear the text field or the image field and try again."
+        return
+    fi
+    # An image that has been moved or deleted since it was chosen fails per
+    # file with "watermark image not found", once for every PDF in the list.
+    # One message before the run beats a column of identical ones after it.
+    if [ -n "$image" ] && [ ! -e "$image" ]; then
+        echo "The watermark image is no longer at:
+${image}
+
+Choose it again."
+        return
+    fi
+}
+
+# Echo why Set Password cannot run, or "" when it can.
+encrypt_settings_problem() {
+    local user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
+    local owner_pw="$OMC_ACTIONUI_VIEW_112_VALUE"
+
+    # Checked before the empty test because a mismatch is the more specific
+    # diagnosis: it names the field that went wrong instead of asking for a
+    # password the user believes they already entered.
+    if [ "$user_pw" != "$OMC_ACTIONUI_VIEW_111_VALUE" ]; then
+        echo "The user password and its confirmation do not match.
+
+Retype both fields and try again."
+        return
+    fi
+    if [ "$owner_pw" != "$OMC_ACTIONUI_VIEW_113_VALUE" ]; then
+        echo "The owner password and its confirmation do not match.
+
+Retype both fields and try again."
+        return
+    fi
+    if [ -z "$user_pw" ] && [ -z "$owner_pw" ]; then
+        echo "Enter a user password, an owner password, or both.
+
+The user password is needed to open the file; the owner password grants full access to whoever has it."
+        return
+    fi
+
+    # Non-ASCII passwords are rejected outright by the writer: pdfutil exits 2
+    # with "failed to write PDF" and produces no file. Verified with cafe-acute,
+    # naive-diaeresis and Greek omega - so this is not "outside Latin-1", it is
+    # anything above plain ASCII, accents included.
+    #
+    # Caught here because the failure it replaces is uninformative: the user
+    # would pick a destination, wait, and then be told the PDF could not be
+    # written, with nothing pointing at the password field as the cause.
+    if printf '%s%s' "$user_pw" "$owner_pw" | LC_ALL=C /usr/bin/grep -q '[^ -~]'; then
+        echo "Passwords must use plain ASCII characters only.
+
+The 128-bit AES handler pdfutil writes cannot store accented or non-Latin characters, and refuses to write the file at all rather than producing one nobody can open. QuickPDF's 256-bit AES option accepts them."
+        return
+    fi
+
+    # pdfutil has no way to say "grant nothing": omitting --allow grants
+    # everything and passing it an empty list is a usage error. Saying so here
+    # beats letting the run fail with "expects a comma-separated flag list",
+    # which does not hint at which control caused it.
+    if [ -z "$(encrypt_allow_list)" ]; then
+        echo "Set at least one permission to something other than \"Not allowed\".
+
+A PDF cannot deny every permission at once - that combination has no representation in the format, so pdfutil refuses it."
+        return
+    fi
+}
+
+# Echo what a redraw would discard from a document: "outline", "annotations",
+# "outline annotations", or "" when there is nothing to lose.
+#
+# Both facts come out of `info`, which the caller has usually already paid for:
+#
+#   outline items: 3                          -> an outline
+#   page 1: 612x792 pt, text, 2 annotations   -> annotations or form fields
+#
+# `info` counts form fields as annotations and does not separate them, so the
+# wording never claims to know which it found. The page-line anchor matters:
+# matching "annotations" anywhere in the output would fire on a document whose
+# own path happens to contain the word.
+#
+# An unreadable document yields "", which reads as "nothing at risk" and lets
+# the run proceed to the real error. That is the right direction - a guard
+# should not block work over a question it could not answer.
+# Arguments: path
+pdf_structure_at_risk() {
+    local info="$(pdf_info_for "$1")"
+    [ -z "$info" ] && return 0
+
+    local found=""
+    local items="$(printf '%s\n' "$info" \
+        | /usr/bin/awk -F': ' '$1 == "outline items" { print $2; exit }')"
+    if [ -n "$items" ] && [ "$items" != "0" ]; then
+        found="outline"
+    fi
+    if printf '%s\n' "$info" \
+        | /usr/bin/awk '/^page [0-9]+: .* annotations/ { found = 1 } END { exit !found }'; then
+        found="${found:+$found }annotations"
+    fi
+    echo "$found"
+}
+
+# Turn what pdf_structure_at_risk found into a phrase that completes
+# "<FILE> has ...".
+structure_risk_phrase() {
+    case "$1" in
+        "outline annotations") echo "an outline and annotations or form fields" ;;
+        "outline")             echo "an outline" ;;
+        "annotations")         echo "annotations or form fields" ;;
+        *)                     echo "structure that will not survive" ;;
+    esac
+}
+
+# Resolve one page-range endpoint to a page number, or "" when it is invalid.
+# Arguments: term page-count
+resolve_page_term() {
+    local t="$(trim_spaces "$1")"
+    case "$t" in
+        end)
+            echo "$2"
+            ;;
+        '' | *[!0-9]*)
+            echo ""
+            ;;
+        # No document has 10-digit page numbers, and a value that long would
+        # overflow the shell's arithmetic further down. Reject it here rather
+        # than letting it reach $(( )).
+        ??????????*)
+            echo ""
+            ;;
+        *)
+            if [ "$t" -ge 1 ] && [ "$t" -le "$2" ]; then
+                # Normalise to base 10. `[` compares decimally, but $(( ))
+                # reads a leading zero as OCTAL, so an accepted "008" would
+                # later abort the arithmetic ("value too great for base") and
+                # "010" would silently mean 8.
+                echo "$((10#$t))"
+            else
+                echo ""
+            fi
+            ;;
+    esac
+}
+
+# Echo how many pages a range spec selects, mirroring pdfutil's grammar
+#   RANGE := TERM ("," TERM)*      TERM := N | N-M | N-end | end | all
+# 1-based and inclusive; descending terms are legal and duplicates count.
+# An empty spec means every page.
+#
+# Echoes "" when the spec does not resolve. Callers must treat that as "more
+# than one page", which is the safe direction: render's prefix form yielding a
+# single file is still a correct, well-named file, whereas its literal-path
+# form yielding many files would overwrite them onto one name.
+#
+# Arguments: range-spec page-count
+range_page_count() {
+    local spec="$1" total="$2"
+    case "$total" in
+        '' | *[!0-9]*) echo ""; return ;;
+    esac
+    if [ -z "$spec" ]; then
+        echo "$total"
+        return
+    fi
+
+    local sum=0 term lo hi
+    local old_ifs="$IFS"
+    # set -f before the unquoted expansion: the spec is text the user typed, and
+    # a "*" in it would otherwise be expanded against the working directory,
+    # making the page count depend on whatever files happen to be there.
+    # Restore rather than assume: an unconditional `set +f` would switch
+    # globbing ON for a future caller that had deliberately turned it off.
+    local glob_state="$-"
+    set -f
+    IFS=','
+    set -- $spec
+    IFS="$old_ifs"
+    case "$glob_state" in *f*) ;; *) set +f ;; esac
+
+    for term in "$@"; do
+        term="$(trim_spaces "$term")"
+        if [ "$term" = "all" ]; then
+            sum=$((sum + total))
+            continue
+        fi
+        case "$term" in
+            *-*)
+                lo="$(resolve_page_term "${term%%-*}" "$total")"
+                hi="$(resolve_page_term "${term#*-}" "$total")"
+                if [ -z "$lo" ] || [ -z "$hi" ]; then
+                    echo ""
+                    return
+                fi
+                if [ "$lo" -le "$hi" ]; then
+                    sum=$((sum + hi - lo + 1))
+                else
+                    sum=$((sum + lo - hi + 1))
+                fi
+                ;;
+            *)
+                lo="$(resolve_page_term "$term" "$total")"
+                if [ -z "$lo" ]; then
+                    echo ""
+                    return
+                fi
+                sum=$((sum + 1))
+                ;;
+        esac
+    done
+
+    echo "$sum"
+}
+
+# --- end handler-local functions -----------------------------------------
 
 operation="$(current_operation)"
 all_paths="$OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS"

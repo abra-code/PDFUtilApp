@@ -12,5 +12,6 @@
 # would come up with an empty structure notice.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 apply_operation_panel "$(current_operation)"

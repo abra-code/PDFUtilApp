@@ -2,6 +2,7 @@
 # PDFUtil.remove.selected.sh - Remove the selected file from the table
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.files.sh"
 
 selected_path="$OMC_ACTIONUI_TABLE_10_COLUMN_3_VALUE"
 

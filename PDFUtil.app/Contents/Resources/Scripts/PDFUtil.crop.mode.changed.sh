@@ -5,5 +5,6 @@
 # cannot say what it wants without knowing the mode.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 apply_crop_mode_state

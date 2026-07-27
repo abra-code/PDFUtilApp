@@ -7,5 +7,6 @@
 # leaving the three controls live would offer settings that cannot be sent.
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 apply_reduce_mode_state

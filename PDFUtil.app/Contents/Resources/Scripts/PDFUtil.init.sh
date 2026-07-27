@@ -2,6 +2,8 @@
 # PDFUtil.init.sh - Initialize the window
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.files.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 # Start with an empty file list
 "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
