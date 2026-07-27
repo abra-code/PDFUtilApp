@@ -280,7 +280,8 @@
                     "properties": {
                       "title": "Convert to grayscale",
                       "isOn": false,
-                      "style": "checkbox"
+                      "style": "checkbox",
+                      "actionID": "PDFUtil.reduce.mode.changed"
                     }
                   },
                   {

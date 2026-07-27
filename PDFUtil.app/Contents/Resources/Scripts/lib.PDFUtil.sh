@@ -153,11 +153,13 @@ CROP_RANGE_ID=188
 # --searchable is not a variation of the same run, it is a different engine:
 # the default path rasterizes each page and reads it with Vision, producing
 # text, while --searchable hands the document to PDFKit's own OCR and saves a
-# PDF. The help says --lang/--fast/--dpi do not apply on that path. Measured:
-# -p does not apply either - `ocr --searchable -p 1` on a three-page scan
-# returned all three pages, every one of them carrying a text layer. So all
-# four of these controls are switched off when 183 is on, not just the three
-# the help names.
+# PDF. The help used to name only --lang/--fast/--dpi as inapplicable there.
+# Measured: -p did not apply either - `ocr --searchable -p 1` on a three-page
+# scan returned all three pages, every one carrying a text layer, and `-p 99`
+# on a three-page file exited 0 without complaint. All four were reported
+# upstream and pdfutil now REFUSES them alongside --searchable rather than
+# dropping them, so emitting any of them here would be a usage error, not a
+# silent no-op. Hence all four controls go dead when 183 is on.
 OCR_LANG_ID=180
 OCR_FAST_ID=181
 OCR_DPI_ID=182
@@ -168,10 +170,10 @@ OCR_RANGE_ID=184
 #
 # Two modes that share almost no flags. Burn-in redraws the page with the mark
 # painted into it; --annotation adds a freeText annotation and leaves the
-# document's structure alone. pdfutil rejects --annotation with --image (exit
-# 1) and silently ignores --rotate-mark and --under there, so the mode toggle
-# drives which controls are live rather than letting the user set values that
-# are dropped without comment.
+# document's structure alone. pdfutil rejects --annotation with --image, and
+# (since the ignored-parameter sweep) with --rotate-mark and --under too - all
+# three used to be a mix of hard error and silent drop. The mode toggle drives
+# which controls are live, so none of the three can be sent in that mode.
 WM_TEXT_ID=160
 WM_IMAGE_ID=161
 WM_POSITION_ID=162
@@ -673,7 +675,7 @@ select_first_or_resync() {
 structure_notice() {
     case "$1" in
         reduce)
-            echo "Redraws pages: annotations, links, outline, and form fields are not carried over."
+            echo "Redraws pages: annotations, links, outline, and form fields are not carried over. \"Convert to grayscale\" uses a different filter that replaces the quality, resolution and edge settings rather than adding to them."
             ;;
         render)
             echo "Rasterizes pages to images. Text stops being selectable and searchable - export at a higher DPI if the result will be read on screen."
@@ -706,7 +708,7 @@ structure_notice() {
             echo "Inputs are joined in list order. Page-level structure is carried over; the document outline is not merged across inputs."
             ;;
         ocr)
-            echo "Reads the pages as pictures, so it works on scans with no text layer at all. Recognition is never perfect - check the result before relying on it. \"Embed a searchable text layer\" saves a PDF through a different engine, where the language, speed, resolution and page-range settings have no effect."
+            echo "Reads the pages as pictures, so it works on scans with no text layer at all. Recognition is never perfect - check the result before relying on it. \"Embed a searchable text layer\" saves a PDF through a different engine, which covers the whole document and picks its own settings, so the language, speed, resolution and page-range controls do not apply to it."
             ;;
         watermark)
             echo "Burning the mark in redraws the pages: annotations, links, the outline and form fields are not carried over. Adding it as an annotation keeps all of that and stays editable, but is text-only and cannot be rotated."
@@ -843,8 +845,9 @@ apply_crop_mode_state() {
 }
 
 # Enable exactly the split controls the chosen mode uses. --chapters and --every
-# are alternatives; pdfutil takes --every silently when both are passed, so the
-# UI must not imply the chapter count is also in play.
+# are alternatives and pdfutil rejects the pair outright ("--every and --chapters
+# are mutually exclusive", exit 1 - re-measured, an earlier note here claimed it
+# silently preferred --every), so the UI must never let both reach the builder.
 apply_split_mode_state() {
     if [ "$OMC_ACTIONUI_VIEW_151_VALUE" = "true" ]; then
         "$dialog_tool" "$window_uuid" ${SPLIT_EVERY_ID} omc_disable
@@ -853,12 +856,32 @@ apply_split_mode_state() {
     fi
 }
 
-# Switch off the OCR controls that the searchable path ignores.
+# Switch off the recompression controls that grayscale mode replaces.
 #
-# All four, not the three the help names: -p is ignored there too (measured -
-# see the id block above). A control that silently does nothing is worse than a
-# disabled one, because the user reads the result as evidence the setting was
-# honoured.
+# --gray selects the system Gray Tone filter, which is built INSTEAD of the
+# recompression filter rather than on top of it, so quality, resolution and
+# max-edge have nothing to act on. pdfutil used to accept all three and drop
+# them silently (-q 1 and -q 100 gave byte-identical files); it now refuses the
+# combination, so build_pdfutil_args must stop emitting them as well - see the
+# reduce case there.
+apply_reduce_mode_state() {
+    local state=omc_enable
+    [ "$OMC_ACTIONUI_VIEW_80_VALUE" = "true" ] && state=omc_disable
+
+    "$dialog_tool" "$window_uuid" ${RED_QUALITY_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${RED_DOWNSAMPLE_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${RED_DPI_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_ON_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_PX_ID} "$state"
+}
+
+# Switch off the OCR controls the searchable path cannot use.
+#
+# All four, not the three the help used to name: -p does not apply there either
+# (measured - see the id block above). pdfutil refuses all four alongside
+# --searchable, so a live control here would offer a setting that cannot even be
+# sent; before that fix it was worse still, silently doing nothing while the
+# output read as evidence the setting had been honoured.
 apply_ocr_mode_state() {
     local state=omc_enable
     [ "$OMC_ACTIONUI_VIEW_183_VALUE" = "true" ] && state=omc_disable
@@ -871,10 +894,10 @@ apply_ocr_mode_state() {
 
 # Switch off the watermark controls the annotation mode cannot use.
 #
-# --image is a usage error there (pdfutil exits 1), while --rotate-mark and
-# --under are accepted and then ignored. Both failure shapes are bad in the
-# same way - the user set something that did not happen - so the toggle takes
-# all four out of play rather than only the one that errors.
+# pdfutil refuses --image, --rotate-mark and --under alongside --annotation, so
+# all three are usage errors now; --rotate-mark and --under used to be accepted
+# and then ignored, which is why the toggle already took them out of play before
+# the refusals landed. Either way the user must not be able to set them here.
 apply_watermark_mode_state() {
     local state=omc_enable
     [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ] && state=omc_disable
@@ -918,6 +941,10 @@ apply_operation_panel() {
         "$dialog_tool" "$window_uuid" ${GROUP_PLACEHOLDER_ID} \
             "$(operation_label "$op") is not available yet.
 Pick another operation, or use QuickPDF if it offers this one."
+    fi
+
+    if [ "$want" = "${GROUP_REDUCE_ID}" ]; then
+        apply_reduce_mode_state
     fi
 
     if [ "$want" = "${GROUP_RENDER_ID}" ]; then
@@ -1333,21 +1360,29 @@ build_pdfutil_args() {
         reduce)
             PDFUTIL_VERB="reduce"
             PDFUTIL_OUTPUT_KIND="pdf"
-            PDFUTIL_ARGS+=(-q "$(clamp_quality "$OMC_ACTIONUI_VIEW_72_VALUE" 85)")
-            # -r is a ceiling, and 0 disables downsampling entirely. Passing it
-            # explicitly in both cases keeps the toggle honest: pdfutil's own
-            # default is 150, so omitting -r when the toggle is off would
-            # downsample anyway.
-            if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
-                PDFUTIL_ARGS+=(-r "$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)")
-            else
-                PDFUTIL_ARGS+=(-r 0)
-            fi
-            if [ "$OMC_ACTIONUI_VIEW_78_VALUE" = "true" ]; then
-                PDFUTIL_ARGS+=(-m "$(clamp_pixels "$OMC_ACTIONUI_VIEW_79_VALUE" 2000)")
-            fi
             if [ "$OMC_ACTIONUI_VIEW_80_VALUE" = "true" ]; then
+                # Grayscale is a different filter, not a modifier on the
+                # recompression one: pdfutil builds the Gray Tone filter INSTEAD
+                # of the quality/dpi/max-edge one, and refuses the combination
+                # rather than accepting the three and dropping them. So this
+                # branch emits --gray alone, exactly as the OCR searchable
+                # branch emits --searchable alone. The panel greys the three
+                # controls out to match (apply_reduce_mode_state).
                 PDFUTIL_ARGS+=(--gray)
+            else
+                PDFUTIL_ARGS+=(-q "$(clamp_quality "$OMC_ACTIONUI_VIEW_72_VALUE" 85)")
+                # -r is a ceiling, and 0 disables downsampling entirely. Passing
+                # it explicitly in both cases keeps the toggle honest: pdfutil's
+                # own default is 150, so omitting -r when the toggle is off
+                # would downsample anyway.
+                if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
+                    PDFUTIL_ARGS+=(-r "$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)")
+                else
+                    PDFUTIL_ARGS+=(-r 0)
+                fi
+                if [ "$OMC_ACTIONUI_VIEW_78_VALUE" = "true" ]; then
+                    PDFUTIL_ARGS+=(-m "$(clamp_pixels "$OMC_ACTIONUI_VIEW_79_VALUE" 2000)")
+                fi
             fi
             ;;
 
@@ -1488,10 +1523,12 @@ build_pdfutil_args() {
             PDFUTIL_VERB="ocr"
             if [ "$OMC_ACTIONUI_VIEW_183_VALUE" = "true" ]; then
                 # A different engine and a different result: PDFKit's own OCR
-                # saves a PDF. --lang, --fast, --dpi and -p are all accepted
-                # and then ignored on this path, so none of them is emitted -
-                # passing a flag that does nothing only makes the command line
-                # lie about what ran.
+                # saves a PDF. --lang, --fast, --dpi and -p cannot apply on
+                # this path and pdfutil now refuses them here, so emitting any
+                # of them would fail the run outright. Even when they were
+                # merely ignored this branch sent --searchable alone, because a
+                # flag that does nothing makes the command line lie about what
+                # ran; the upstream fix turned that caution into a requirement.
                 PDFUTIL_OUTPUT_KIND="pdf"
                 PDFUTIL_ARGS+=(--searchable)
             else
