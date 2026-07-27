@@ -66,8 +66,11 @@ GROUP_ROTATE_ID=207
 GROUP_CROP_ID=208
 GROUP_SPLIT_ID=209
 GROUP_MERGE_ID=210
+GROUP_OCR_ID=211
+GROUP_WATERMARK_ID=212
+GROUP_FLATTEN_ID=213
 
-SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210"
+SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213"
 
 # Reduce controls (id band 70-80)
 RED_QUALITY_ID=72
@@ -145,6 +148,40 @@ CROP_VALUES_ID=186
 CROP_BOX_ID=187
 CROP_RANGE_ID=188
 
+# OCR controls (id band 180-184).
+#
+# --searchable is not a variation of the same run, it is a different engine:
+# the default path rasterizes each page and reads it with Vision, producing
+# text, while --searchable hands the document to PDFKit's own OCR and saves a
+# PDF. The help says --lang/--fast/--dpi do not apply on that path. Measured:
+# -p does not apply either - `ocr --searchable -p 1` on a three-page scan
+# returned all three pages, every one of them carrying a text layer. So all
+# four of these controls are switched off when 183 is on, not just the three
+# the help names.
+OCR_LANG_ID=180
+OCR_FAST_ID=181
+OCR_DPI_ID=182
+OCR_SEARCHABLE_ID=183
+OCR_RANGE_ID=184
+
+# Watermark controls (id band 160-168).
+#
+# Two modes that share almost no flags. Burn-in redraws the page with the mark
+# painted into it; --annotation adds a freeText annotation and leaves the
+# document's structure alone. pdfutil rejects --annotation with --image (exit
+# 1) and silently ignores --rotate-mark and --under there, so the mode toggle
+# drives which controls are live rather than letting the user set values that
+# are dropped without comment.
+WM_TEXT_ID=160
+WM_IMAGE_ID=161
+WM_POSITION_ID=162
+WM_ROTATION_ID=163
+WM_OPACITY_ID=164
+WM_UNDER_ID=165
+WM_ANNOTATION_ID=166
+WM_RANGE_ID=167
+WM_CHOOSE_IMAGE_ID=168
+
 # Per-section structure notice Text elements (band 300-319, one per GroupBox).
 # Their wording is written at runtime by structure_notice so the prose lives in
 # exactly one place - the same table the Stage 7 pre-flight alert will read.
@@ -159,6 +196,9 @@ NOTICE_ROTATE_ID=307
 NOTICE_CROP_ID=308
 NOTICE_SPLIT_ID=309
 NOTICE_MERGE_ID=310
+NOTICE_OCR_ID=311
+NOTICE_WATERMARK_ID=312
+NOTICE_FLATTEN_ID=313
 
 # Runtime tools
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
@@ -665,10 +705,58 @@ structure_notice() {
         merge)
             echo "Inputs are joined in list order. Page-level structure is carried over; the document outline is not merged across inputs."
             ;;
+        ocr)
+            echo "Reads the pages as pictures, so it works on scans with no text layer at all. Recognition is never perfect - check the result before relying on it. \"Embed a searchable text layer\" saves a PDF through a different engine, where the language, speed, resolution and page-range settings have no effect."
+            ;;
+        watermark)
+            echo "Burning the mark in redraws the pages: annotations, links, the outline and form fields are not carried over. Adding it as an annotation keeps all of that and stays editable, but is text-only and cannot be rotated."
+            ;;
+        flatten)
+            echo "Removes interactivity deliberately: filled-in values and annotation appearances are painted into the page and the fields themselves are gone. The outline survives; nothing can be edited afterwards."
+            ;;
         *)
             echo ""
             ;;
     esac
+}
+
+# Return 0 when an operation reaches its result by REDRAWING the page content,
+# which discards annotations, links, the outline and form fields.
+#
+# Measured rather than assumed - each verb was run against a fixture with an
+# outline and one with form fields, and the output re-read with `info` and
+# `forms --list`:
+#
+#   reduce, linearize, pdfa, watermark (burn-in)  outline AND fields lost
+#   watermark --annotation                        both kept
+#   ocr --searchable                              both kept
+#   flatten                                       outline kept, fields removed
+#
+# flatten is deliberately absent: removing the fields is what the user asked
+# for, so warning about it would be warning about the operation succeeding. Its
+# section text explains the effect instead.
+#
+# linearize and pdfa are listed although their panels arrive in a later stage:
+# the measurement is done and the table is the thing that must not go stale.
+# frompages joins them when it lands, but only for PDF inputs.
+#
+# Arguments: operation tag
+operation_redraws() {
+    case "$1" in
+        reduce | linearize | pdfa)
+            return 0
+            ;;
+        watermark)
+            # Annotation mode is the structure-preserving alternative, so the
+            # toggle decides. Unset means the toggle's declared isOn, which is
+            # off - burn-in, the mode that redraws.
+            if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+                return 1
+            fi
+            return 0
+            ;;
+    esac
+    return 1
 }
 
 # Echo the id of the Text element that displays the notice for an operation,
@@ -686,6 +774,9 @@ notice_id_for_operation() {
         crop)    echo ${NOTICE_CROP_ID} ;;
         split)   echo ${NOTICE_SPLIT_ID} ;;
         merge)   echo ${NOTICE_MERGE_ID} ;;
+        ocr)       echo ${NOTICE_OCR_ID} ;;
+        watermark) echo ${NOTICE_WATERMARK_ID} ;;
+        flatten)   echo ${NOTICE_FLATTEN_ID} ;;
         *)       echo "" ;;
     esac
 }
@@ -705,6 +796,9 @@ panel_for_operation() {
         crop)    echo ${GROUP_CROP_ID} ;;
         split)   echo ${GROUP_SPLIT_ID} ;;
         merge)   echo ${GROUP_MERGE_ID} ;;
+        ocr)       echo ${GROUP_OCR_ID} ;;
+        watermark) echo ${GROUP_WATERMARK_ID} ;;
+        flatten)   echo ${GROUP_FLATTEN_ID} ;;
         *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }
@@ -759,6 +853,38 @@ apply_split_mode_state() {
     fi
 }
 
+# Switch off the OCR controls that the searchable path ignores.
+#
+# All four, not the three the help names: -p is ignored there too (measured -
+# see the id block above). A control that silently does nothing is worse than a
+# disabled one, because the user reads the result as evidence the setting was
+# honoured.
+apply_ocr_mode_state() {
+    local state=omc_enable
+    [ "$OMC_ACTIONUI_VIEW_183_VALUE" = "true" ] && state=omc_disable
+
+    "$dialog_tool" "$window_uuid" ${OCR_LANG_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${OCR_FAST_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${OCR_DPI_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${OCR_RANGE_ID} "$state"
+}
+
+# Switch off the watermark controls the annotation mode cannot use.
+#
+# --image is a usage error there (pdfutil exits 1), while --rotate-mark and
+# --under are accepted and then ignored. Both failure shapes are bad in the
+# same way - the user set something that did not happen - so the toggle takes
+# all four out of play rather than only the one that errors.
+apply_watermark_mode_state() {
+    local state=omc_enable
+    [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ] && state=omc_disable
+
+    "$dialog_tool" "$window_uuid" ${WM_IMAGE_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${WM_CHOOSE_IMAGE_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${WM_ROTATION_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${WM_UNDER_ID} "$state"
+}
+
 # Show the settings panel for an operation and fill in its notice text.
 #
 # Called from both PDFUtil.init (the picker fires no action for its initial
@@ -804,6 +930,14 @@ Pick another operation, or use QuickPDF if it offers this one."
 
     if [ "$want" = "${GROUP_SPLIT_ID}" ]; then
         apply_split_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_OCR_ID}" ]; then
+        apply_ocr_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_WATERMARK_ID}" ]; then
+        apply_watermark_mode_state
     fi
 }
 
@@ -859,6 +993,98 @@ rotate_angle() {
         90 | 180 | 270 | -90) echo "$OMC_ACTIONUI_VIEW_130_VALUE" ;;
         *) echo "90" ;;
     esac
+}
+
+# Echo the watermark position, defaulting to center. pdfutil exits 1 on an
+# unrecognised --position, so a stale or transitional picker value would turn
+# into a usage error rather than a mark in the wrong corner.
+watermark_position() {
+    case "$OMC_ACTIONUI_VIEW_162_VALUE" in
+        center | top-left | top-right | bottom-left | bottom-right)
+            echo "$OMC_ACTIONUI_VIEW_162_VALUE"
+            ;;
+        *) echo "center" ;;
+    esac
+}
+
+# Echo a whole-degree rotation for the mark, defaulting to 45.
+#
+# pdfutil accepts any integer here, 400 and -45 included, so there is nothing
+# to clamp to - only non-numeric junk has to be turned into something. The
+# leading "-" is peeled off before the digit test so negatives survive it.
+# Arguments: value default
+clamp_degrees() {
+    local v="$(trim_spaces "$1")" sign=""
+    case "$v" in
+        -*) sign="-"; v="${v#-}" ;;
+    esac
+    case "$v" in
+        "" | *[!0-9]*) echo "$2"; return ;;
+    esac
+    # Beyond nine digits the value is meaningless as an angle and would
+    # overflow the arithmetic that normalises it; take the default instead.
+    if [ ${#v} -gt 9 ]; then echo "$2"; return; fi
+    echo "${sign}$((10#$v))"
+}
+
+# Echo an opacity from 0 to 100, defaulting to 25.
+#
+# Not clamp_quality: that floors at 1, and pdfutil accepts --opacity 0. Zero is
+# a legal value here (an invisible mark), so silently raising it to 1 would be
+# changing a setting the user chose. Out-of-range values are a usage error
+# (exit 1, verified at 150), which is what this exists to prevent.
+clamp_opacity() {
+    local v="$(trim_spaces "$1")"
+    case "$v" in
+        "" | *[!0-9]*) echo "$2"; return ;;
+    esac
+    if [ ${#v} -gt 9 ]; then echo "100"; return; fi
+    v=$((10#$v))
+    [ "$v" -gt 100 ] && v=100
+    echo "$v"
+}
+
+# Append one --lang FLAG per tag in a comma-separated list, skipping anything
+# that is not a plausible BCP-47 tag.
+#
+# The filter is not about recognition: Vision ignores a tag it does not know
+# (verified, --lang zz-ZZ exits 0), so a wrong tag costs nothing.
+#
+# Nor is it strictly required for safety. pdfutil's parser consumes the argv
+# after a flag unconditionally, even one beginning with "-" (verified against
+# the binary), so a tag like "--force" would arrive as a language name rather
+# than as a second flag. What the filter buys is that garbage in this field
+# stays in this field: a value the parser would accept and Vision would discard
+# never reaches the command line, so the invocation says what was really asked
+# for. Defence in depth, at the cost of one case label.
+#
+# An empty list is correct and means "auto-detect".
+#
+# Arguments: raw field value
+add_ocr_langs() {
+    local raw="$(trim_spaces "$1")" tag
+    [ -z "$raw" ] && return 0
+
+    local old_ifs="$IFS"
+    # set -f for the same reason range_page_count does it: this is text the
+    # user typed, and a "*" would otherwise expand against the working
+    # directory. Restore rather than assume - an unconditional `set +f` would
+    # switch globbing on for a caller that had turned it off.
+    local glob_state="$-"
+    set -f
+    IFS=','
+    set -- $raw
+    IFS="$old_ifs"
+    case "$glob_state" in *f*) ;; *) set +f ;; esac
+
+    for tag in "$@"; do
+        tag="$(trim_spaces "$tag")"
+        case "$tag" in
+            "" | [!A-Za-z]* | *[!A-Za-z0-9-]*) continue ;;
+        esac
+        PDFUTIL_ARGS+=(--lang "$tag")
+    done
+    return 0
 }
 
 # Echo the page box to write, defaulting to crop (pdfutil's own default).
@@ -972,7 +1198,59 @@ pdfutil treats an empty password as a usage error rather than as a blank passwor
 \"${v}\" is not in that form."
             fi
             ;;
+        watermark) watermark_settings_problem ;;
     esac
+}
+
+# Echo why Watermark cannot run, or "" when it can.
+watermark_settings_problem() {
+    local text="$(trim_spaces "$OMC_ACTIONUI_VIEW_160_VALUE")"
+    local image="$(trim_spaces "$OMC_ACTIONUI_VIEW_161_VALUE")"
+
+    if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+        # The image field is disabled in this mode but can still hold a path
+        # from before the toggle was flipped, and build_pdfutil_args drops it
+        # rather than passing --image into a usage error.
+        #
+        # Refused whether or not there is text to fall back on. Dropping it
+        # silently when text happens to be filled in would make the outcome
+        # depend on a field the user is not looking at, and it is the same
+        # ambiguity the burn-in branch below refuses outright - one mark was
+        # asked for and two were described. Making the user clear one of them
+        # is the same answer in both modes.
+        if [ -n "$image" ]; then
+            echo "An annotation watermark is text-only, so the chosen image cannot be used.
+
+Clear the image field, or turn the annotation option off to stamp the image instead."
+            return
+        fi
+        if [ -z "$text" ]; then
+            echo "Enter the text to stamp."
+        fi
+        return
+    fi
+
+    if [ -z "$text" ] && [ -z "$image" ]; then
+        echo "Enter the text to stamp, or choose an image."
+        return
+    fi
+    # pdfutil rejects the pair outright (exit 1) rather than picking one.
+    if [ -n "$text" ] && [ -n "$image" ]; then
+        echo "Stamp either text or an image, not both.
+
+Clear the text field or the image field and try again."
+        return
+    fi
+    # An image that has been moved or deleted since it was chosen fails per
+    # file with "watermark image not found", once for every PDF in the list.
+    # One message before the run beats a column of identical ones after it.
+    if [ -n "$image" ] && [ ! -e "$image" ]; then
+        echo "The watermark image is no longer at:
+${image}
+
+Choose it again."
+        return
+    fi
 }
 
 # Echo why Set Password cannot run, or "" when it can.
@@ -1206,6 +1484,63 @@ build_pdfutil_args() {
             PDFUTIL_OUTPUT_KIND="merged"
             ;;
 
+        ocr)
+            PDFUTIL_VERB="ocr"
+            if [ "$OMC_ACTIONUI_VIEW_183_VALUE" = "true" ]; then
+                # A different engine and a different result: PDFKit's own OCR
+                # saves a PDF. --lang, --fast, --dpi and -p are all accepted
+                # and then ignored on this path, so none of them is emitted -
+                # passing a flag that does nothing only makes the command line
+                # lie about what ran.
+                PDFUTIL_OUTPUT_KIND="pdf"
+                PDFUTIL_ARGS+=(--searchable)
+            else
+                PDFUTIL_OUTPUT_KIND="text"
+                add_ocr_langs "$OMC_ACTIONUI_VIEW_180_VALUE"
+                if [ "$OMC_ACTIONUI_VIEW_181_VALUE" = "true" ]; then
+                    PDFUTIL_ARGS+=(--fast)
+                fi
+                PDFUTIL_ARGS+=(--dpi "$(clamp_dpi "$OMC_ACTIONUI_VIEW_182_VALUE" 300)")
+                add_page_range "$OMC_ACTIONUI_VIEW_184_VALUE"
+            fi
+            ;;
+
+        watermark)
+            PDFUTIL_VERB="watermark"
+            PDFUTIL_OUTPUT_KIND="pdf"
+
+            local wm_text="$(trim_spaces "$OMC_ACTIONUI_VIEW_160_VALUE")"
+            local wm_image="$(trim_spaces "$OMC_ACTIONUI_VIEW_161_VALUE")"
+
+            if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+                # Annotation mode is text-only; pdfutil exits 1 if --image comes
+                # with it. settings_problem has already refused both an empty
+                # text field and a non-empty image field, so the mark is never
+                # built without text and $wm_image is never silently discarded
+                # here - by the time this runs it is known to be empty.
+                PDFUTIL_ARGS+=(--text "$wm_text" --annotation)
+            else
+                if [ -n "$wm_text" ]; then
+                    PDFUTIL_ARGS+=(--text "$wm_text")
+                else
+                    PDFUTIL_ARGS+=(--image "$wm_image")
+                fi
+                PDFUTIL_ARGS+=(--rotate-mark "$(clamp_degrees "$OMC_ACTIONUI_VIEW_163_VALUE" 45)")
+                if [ "$OMC_ACTIONUI_VIEW_165_VALUE" = "true" ]; then
+                    PDFUTIL_ARGS+=(--under)
+                fi
+            fi
+
+            PDFUTIL_ARGS+=(--position "$(watermark_position)")
+            PDFUTIL_ARGS+=(--opacity "$(clamp_opacity "$OMC_ACTIONUI_VIEW_164_VALUE" 25)")
+            add_page_range "$OMC_ACTIONUI_VIEW_167_VALUE"
+            ;;
+
+        flatten)
+            PDFUTIL_VERB="flatten"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            ;;
+
         *)
             return 1
             ;;
@@ -1298,16 +1633,68 @@ run_pdfutil_merge() {
 # without the right password, corrupt, not a PDF).
 # Arguments: path
 pdf_page_count() {
-    # Reuse the info the locked-file guard just read for this same file rather
-    # than parsing the document twice; `info` costs a quarter of a second on a
-    # large PDF, and the router runs immediately after the guard.
+    pdf_info_for "$1" | /usr/bin/awk -F': ' '$1 == "pages" { print $2; exit }'
+}
+
+# Echo `pdfutil info` for a path, reusing what the locked-file guard just read
+# for this same file rather than parsing the document twice. `info` costs a
+# quarter of a second on a large PDF and both the page count and the structure
+# pre-flight want it immediately after the guard has run.
+#
+# Echoes nothing when the document cannot be read - a locked or corrupt file -
+# so every caller has to treat "" as "unknown", never as "zero".
+# Arguments: path
+pdf_info_for() {
     if [ "$1" = "$PDF_INFO_CACHE_PATH" ] && [ -n "$PDF_INFO_CACHE_OUT" ]; then
-        printf '%s\n' "$PDF_INFO_CACHE_OUT" \
-            | /usr/bin/awk -F': ' '$1 == "pages" { print $2; exit }'
+        printf '%s\n' "$PDF_INFO_CACHE_OUT"
         return
     fi
-    "$PDFUTIL" info "$1" 2>/dev/null \
-        | /usr/bin/awk -F': ' '$1 == "pages" { print $2; exit }'
+    "$PDFUTIL" info "$1" 2>/dev/null
+}
+
+# Echo what a redraw would discard from a document: "outline", "annotations",
+# "outline annotations", or "" when there is nothing to lose.
+#
+# Both facts come out of `info`, which the caller has usually already paid for:
+#
+#   outline items: 3                          -> an outline
+#   page 1: 612x792 pt, text, 2 annotations   -> annotations or form fields
+#
+# `info` counts form fields as annotations and does not separate them, so the
+# wording never claims to know which it found. The page-line anchor matters:
+# matching "annotations" anywhere in the output would fire on a document whose
+# own path happens to contain the word.
+#
+# An unreadable document yields "", which reads as "nothing at risk" and lets
+# the run proceed to the real error. That is the right direction - a guard
+# should not block work over a question it could not answer.
+# Arguments: path
+pdf_structure_at_risk() {
+    local info="$(pdf_info_for "$1")"
+    [ -z "$info" ] && return 0
+
+    local found=""
+    local items="$(printf '%s\n' "$info" \
+        | /usr/bin/awk -F': ' '$1 == "outline items" { print $2; exit }')"
+    if [ -n "$items" ] && [ "$items" != "0" ]; then
+        found="outline"
+    fi
+    if printf '%s\n' "$info" \
+        | /usr/bin/awk '/^page [0-9]+: .* annotations/ { found = 1 } END { exit !found }'; then
+        found="${found:+$found }annotations"
+    fi
+    echo "$found"
+}
+
+# Turn what pdf_structure_at_risk found into a phrase that completes
+# "<FILE> has ...".
+structure_risk_phrase() {
+    case "$1" in
+        "outline annotations") echo "an outline and annotations or form fields" ;;
+        "outline")             echo "an outline" ;;
+        "annotations")         echo "annotations or form fields" ;;
+        *)                     echo "structure that will not survive" ;;
+    esac
 }
 
 # Trim leading and trailing whitespace. Only the ends: pdfutil's parser trims

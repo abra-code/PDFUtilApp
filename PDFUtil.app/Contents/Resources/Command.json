@@ -236,6 +236,29 @@
       "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.split.mode.changed",
       "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.ocr.mode.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.watermark.mode.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.watermark.choose.image",
+      "EXECUTION_MODE": "exe_script_file",
+      "CHOOSE_OBJECT_DIALOG": {
+        "ALLOWED_CONTENT_TYPES": [
+          "public.image"
+        ],
+        "ALLOW_MULTIPLE_ITEMS": false,
+        "MESSAGE": "Select the image to stamp",
+        "USE_PATH_CACHING": false
+      }
     }
   ],
   "VERSION": 2

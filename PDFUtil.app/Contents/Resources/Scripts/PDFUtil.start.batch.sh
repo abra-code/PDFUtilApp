@@ -35,10 +35,13 @@ fi
 # build_pdfutil_args is what knows which operations exist; asking it keeps the
 # router from carrying a second list that could drift out of step.
 if ! build_pdfutil_args "$operation"; then
+    # Deliberately not a list of what does work: that sentence went stale on
+    # every stage that landed, and build_pdfutil_args is already the
+    # authoritative record of which operations have been built.
     "$alert_tool" --level caution --title "PDFUtil" \
         "$(operation_label "$operation") is not available yet.
 
-Reduce File Size, Export Page Images and Extract Text work now."
+Pick another operation, or use QuickPDF if it offers this one."
     exit 0
 fi
 
@@ -67,6 +70,16 @@ non_pdf_count=0
 locked_count=0
 locked_name=""
 first_file=""
+risk_count=0
+risk_name=""
+risk_kind=""
+
+# Only pay for the structure check when the answer could change anything. For
+# every other operation the loop below does exactly what it did before.
+redraws=0
+if operation_redraws "$operation"; then
+    redraws=1
+fi
 
 while IFS= read -r file_path; do
     [ -z "$file_path" ] && continue
@@ -80,6 +93,17 @@ while IFS= read -r file_path; do
         # for an `info` call per file it already knows the answer for.
         locked_count=$((locked_count + 1))
         [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
+    elif [ "$redraws" = "1" ]; then
+        # Free: the guard above just ran `info` on this file and cached it, so
+        # this reads that output rather than parsing the document again.
+        file_risk="$(pdf_structure_at_risk "$file_path")"
+        if [ -n "$file_risk" ]; then
+            risk_count=$((risk_count + 1))
+            if [ -z "$risk_name" ]; then
+                risk_name="$(/usr/bin/basename "$file_path")"
+                risk_kind="$file_risk"
+            fi
+        fi
     fi
 done <<< "$all_paths"
 
@@ -128,6 +152,41 @@ Use Remove Password on them first."
 
 Use Remove Password on them first, then run $(operation_label "$operation") on the unlocked copies."
     exit 0
+fi
+
+# Structure pre-flight. pdfutil is silent about degraded output - a reduce that
+# dropped the outline still exits 0 - so nothing downstream can report this. The
+# section notice already says the operation redraws, but a notice is read once
+# and this is about THESE files, which the notice cannot know about.
+#
+# It is a question, not a refusal: redrawing is often exactly what the user
+# wants, and the only thing missing was the knowledge that this particular
+# document had something to lose. Cancel is the default-safe answer but
+# Continue is a legitimate one, so both are offered.
+if [ "$risk_count" -gt 0 ]; then
+    if [ "$risk_count" -eq 1 ]; then
+        risk_desc="\"${risk_name}\" has $(structure_risk_phrase "$risk_kind")"
+    elif [ "$risk_count" -eq "$file_count" ]; then
+        # The files can differ in what each one carries, so the summary phrase
+        # covers the union rather than claiming they all match the first.
+        risk_desc="all ${file_count} files have an outline, annotations or form fields"
+    else
+        risk_desc="${risk_count} of the ${file_count} files have an outline, annotations or form fields, starting with \"${risk_name}\""
+    fi
+
+    "$alert_tool" --level caution --title "PDFUtil" \
+        --ok "Continue" --cancel "Cancel" \
+        "$(operation_label "$operation") redraws the page content, so annotations, links, the outline and form fields are not carried over.
+
+Right now ${risk_desc}.
+
+Continue anyway?"
+    alert_rc=$?
+    if [ "$alert_rc" -ne 0 ]; then
+        set_summary "Cancelled.
+$(operation_label "$operation") would have discarded structure in ${risk_count} of ${file_count} file(s)."
+        exit 0
+    fi
 fi
 
 case "$PDFUTIL_OUTPUT_KIND" in

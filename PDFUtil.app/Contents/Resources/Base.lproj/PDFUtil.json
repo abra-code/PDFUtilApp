@@ -1155,6 +1155,354 @@
                 ]
               }
             ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 211,
+            "properties": {
+              "title": "OCR",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Toggle",
+                    "id": 183,
+                    "properties": {
+                      "title": "Embed a searchable text layer (saves a PDF instead of a text file)",
+                      "isOn": false,
+                      "style": "checkbox",
+                      "actionID": "PDFUtil.ocr.mode.changed"
+                    }
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Languages",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 180,
+                        "properties": {
+                          "prompt": "auto-detect - or e.g. en-US, fr-FR",
+                          "frame": { "width": 250 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Resolution",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 182,
+                        "properties": {
+                          "text": "300",
+                          "format": "integer",
+                          "frame": { "width": 70 }
+                        }
+                      },
+                      { "type": "Text", "properties": { "text": "DPI" } }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 184,
+                        "properties": {
+                          "prompt": "all - or e.g. 1-3,5,end",
+                          "frame": { "width": 250 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Toggle",
+                    "id": 181,
+                    "properties": {
+                      "title": "Fast recognition (quicker, less accurate)",
+                      "isOn": false,
+                      "style": "checkbox"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 311,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 212,
+            "properties": {
+              "title": "Watermark",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Toggle",
+                    "id": 166,
+                    "properties": {
+                      "title": "Add as an annotation (text only, keeps links and form fields)",
+                      "isOn": false,
+                      "style": "checkbox",
+                      "actionID": "PDFUtil.watermark.mode.changed"
+                    }
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Text",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 160,
+                        "properties": {
+                          "prompt": "DRAFT",
+                          "frame": { "width": 250 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Image",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 161,
+                        "properties": {
+                          "prompt": "instead of text",
+                          "frame": { "width": 160 }
+                        }
+                      },
+                      {
+                        "type": "Button",
+                        "id": 168,
+                        "properties": {
+                          "title": "Choose...",
+                          "actionID": "PDFUtil.watermark.choose.image"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 162,
+                        "properties": {
+                          "title": "Position",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Center", "tag": "center" },
+                            { "title": "Top left", "tag": "top-left" },
+                            { "title": "Top right", "tag": "top-right" },
+                            { "title": "Bottom left", "tag": "bottom-left" },
+                            { "title": "Bottom right", "tag": "bottom-right" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Rotation",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 163,
+                        "properties": {
+                          "text": "45",
+                          "format": "integer",
+                          "frame": { "width": 70 }
+                        }
+                      },
+                      { "type": "Text", "properties": { "text": "degrees" } }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Opacity",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 164,
+                        "properties": {
+                          "text": "25",
+                          "format": "integer",
+                          "frame": { "width": 70 }
+                        }
+                      },
+                      { "type": "Text", "properties": { "text": "percent" } }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 90, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 167,
+                        "properties": {
+                          "prompt": "all - or e.g. 1-3,5,end",
+                          "frame": { "width": 250 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Toggle",
+                    "id": 165,
+                    "properties": {
+                      "title": "Draw beneath the page content",
+                      "isOn": false,
+                      "style": "checkbox"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 312,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 213,
+            "properties": {
+              "title": "Flatten",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Paints form fields and annotations into the page and removes the interactive objects. Nothing to configure - every field and annotation in the document is flattened.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 313,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
