@@ -11,6 +11,8 @@
 #   pdf,    1 input                  -> PDFUtil.run.single   Save As, .pdf
 #   text,   1 input                  -> PDFUtil.run.text     Save As, .txt
 #   images, 1 input, 1 page selected -> PDFUtil.run.image    Save As, image
+#   merged, 2+ inputs                -> PDFUtil.run.merge    Save As, .pdf
+#   parts   (split, any input count) -> PDFUtil.run.batch    destination folder
 #   anything else                    -> PDFUtil.run.batch    destination folder
 #
 # The single-page test for images exists because render has two output modes and
@@ -40,6 +42,19 @@ Reduce File Size, Export Page Images and Extract Text work now."
     exit 0
 fi
 
+# Settings the run cannot proceed with - mismatched password confirmations, an
+# empty page range, a malformed crop rectangle. Checked before the per-file
+# pre-flight because it is instant and needs no disk access, and before any
+# destination dialog because the alternative is asking the user to name an
+# output file for a run that was never going to start.
+settings_issue="$(settings_problem "$operation")"
+if [ -n "$settings_issue" ]; then
+    "$alert_tool" --level caution --title "PDFUtil" "$settings_issue"
+    set_summary "$(operation_label "$operation") did not run.
+${settings_issue}"
+    exit 0
+fi
+
 # The pre-flight below spawns `file` and `pdfutil info` per entry, about 100 ms
 # a file. That is invisible for a handful and a silent several-second pause for
 # a big list, so say what is happening first.
@@ -59,7 +74,10 @@ while IFS= read -r file_path; do
     [ -z "$first_file" ] && first_file="$file_path"
     if [ "$(classify_file "$file_path")" != "pdf" ]; then
         non_pdf_count=$((non_pdf_count + 1))
-    elif pdf_is_locked "$file_path"; then
+    elif [ "$operation" != "decrypt" ] && pdf_is_locked "$file_path"; then
+        # Remove Password is exempt: a locked file is precisely its input, and
+        # the test is skipped rather than counted-and-ignored so it does not pay
+        # for an `info` call per file it already knows the answer for.
         locked_count=$((locked_count + 1))
         [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
     fi
@@ -90,8 +108,9 @@ fi
 # point: the alternative is a batch that prompts for a folder, runs, and then
 # reports a row of identical failures the user cannot act on from that screen.
 #
-# Remove Password (Stage 5) is exempt - a locked file is precisely its input -
-# so this guard will need an operation test when that lands.
+# Remove Password is exempt, in the loop above. Set Password is NOT: encrypting
+# an already-protected file means opening it first, and this operation has no
+# field for the password it is already carrying.
 if [ "$locked_count" -gt 0 ]; then
     if [ "$locked_count" -eq 1 ]; then
         locked_desc="\"${locked_name}\" is password-protected"
@@ -126,6 +145,26 @@ case "$PDFUTIL_OUTPUT_KIND" in
         else
             "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.batch"
         fi
+        ;;
+
+    parts)
+        # Split turns one input into a numbered series, so there is no single
+        # name a Save panel could confirm however short the list is.
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.batch"
+        ;;
+
+    merged)
+        # N inputs, one output - the only many-to-one operation, and the only
+        # one whose Save As panel appears with more than one file in the list.
+        if [ "$file_count" -lt 2 ]; then
+            "$alert_tool" --level caution --title "PDFUtil" \
+                "Merge needs at least two files in the list.
+
+Add the other PDFs, in the order they should appear in the merged document."
+            set_summary "Merge needs at least two files in the list."
+            exit 0
+        fi
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.merge"
         ;;
 
     images)

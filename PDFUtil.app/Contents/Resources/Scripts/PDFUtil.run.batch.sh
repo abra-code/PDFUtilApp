@@ -101,6 +101,55 @@ OK ${filename}: ${image_count} image(s) -> $(/usr/bin/basename "$prefix_stem")${
         continue
     fi
 
+    if [ "$PDFUTIL_OUTPUT_KIND" = "parts" ]; then
+        # One subfolder per input, so a batch of report.pdf and notes.pdf does
+        # not interleave report-001.pdf with notes-001.pdf in one flat heap.
+        # unique_path on the folder keeps a second run from writing into - and
+        # --force overwriting - the parts an earlier one left there.
+        stem="$(path_stem "$file_path")"
+        subdir="$(unique_path "$destination/$stem")"
+        if ! /bin/mkdir -p "$subdir"; then
+            error_count=$((error_count + 1))
+            details="${details}
+FAILED ${filename}: could not create a folder for the parts"
+            continue
+        fi
+
+        output="$(run_pdfutil "$file_path" "$subdir/$stem")"
+        exit_code=$?
+
+        if [ $exit_code -ne 0 ]; then
+            # split writes part by part, so a failure partway leaves a folder of
+            # pages that looks like a complete short document. The folder is
+            # ours alone - unique_path just made it - so clearing it is safe.
+            /bin/rm -rf "$subdir"
+            error_count=$((error_count + 1))
+            details="${details}
+FAILED ${filename}: $(first_error_line "$output")"
+            continue
+        fi
+
+        # Three-or-more digits: pdfutil's %03d is a minimum width, so a document
+        # long enough to need part 1000 writes -1000.pdf.
+        part_count=0
+        for part in "$subdir/$stem"-[0-9][0-9][0-9]*.pdf; do
+            [ -e "$part" ] || continue
+            part_count=$((part_count + 1))
+        done
+
+        if [ "$part_count" -eq 0 ]; then
+            /bin/rm -rf "$subdir"
+            error_count=$((error_count + 1))
+            details="${details}
+FAILED ${filename}: pdfutil wrote no parts"
+        else
+            success_count=$((success_count + 1))
+            details="${details}
+OK ${filename}: ${part_count} part(s) -> $(/usr/bin/basename "$subdir")/"
+        fi
+        continue
+    fi
+
     # PDF and text outputs are both one file per input. Never overwrite: pick a
     # fresh name when the destination already holds one.
     if [ "$PDFUTIL_OUTPUT_KIND" = "text" ]; then

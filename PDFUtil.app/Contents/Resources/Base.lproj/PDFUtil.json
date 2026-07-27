@@ -500,6 +500,661 @@
                 ]
               }
             ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 203,
+            "properties": {
+              "title": "Set Password",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "User password",
+                          "frame": { "width": 110, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 110,
+                        "properties": {
+                          "prompt": "required to open the PDF",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Confirm",
+                          "foregroundStyle": "secondary",
+                          "frame": { "width": 110, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 111,
+                        "properties": {
+                          "prompt": "type the user password again",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Owner password",
+                          "frame": { "width": 110, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 112,
+                        "properties": {
+                          "prompt": "full access (defaults to the user password)",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Confirm",
+                          "foregroundStyle": "secondary",
+                          "frame": { "width": 110, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 113,
+                        "properties": {
+                          "prompt": "type the owner password again",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  { "type": "Divider" },
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Allow readers who open with the user password to:",
+                      "foregroundStyle": "secondary",
+                      "font": "caption"
+                    }
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 114,
+                        "properties": {
+                          "title": "Printing",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Print at full resolution", "tag": "high-quality-printing" },
+                            { "title": "Print at low resolution only", "tag": "printing" },
+                            { "title": "Not allowed", "tag": "none" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 115,
+                        "properties": {
+                          "title": "Copying",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Copy text and graphics", "tag": "copying" },
+                            { "title": "Screen readers only", "tag": "accessibility" },
+                            { "title": "Not allowed", "tag": "none" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 116,
+                        "properties": {
+                          "title": "Changes",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Make any changes", "tag": "changes" },
+                            { "title": "Comment and fill in forms", "tag": "commenting" },
+                            { "title": "Fill in forms only", "tag": "forms" },
+                            { "title": "Not allowed", "tag": "none" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "Toggle",
+                    "id": 117,
+                    "properties": {
+                      "title": "Reorder, insert and delete pages",
+                      "isOn": true,
+                      "style": "checkbox"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 303,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 204,
+            "properties": {
+              "title": "Remove Password",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Password",
+                          "frame": { "width": 110, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 122,
+                        "properties": {
+                          "prompt": "the password that opens these PDFs",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 304,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 205,
+            "properties": {
+              "title": "Extract or Reorder",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 140,
+                        "properties": {
+                          "prompt": "e.g. 1-5,8 - or 3,1,2 to reorder",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 305,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 206,
+            "properties": {
+              "title": "Delete Pages",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 141,
+                        "properties": {
+                          "prompt": "e.g. 2 or 4-6",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 306,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 207,
+            "properties": {
+              "title": "Rotate",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 130,
+                        "properties": {
+                          "title": "Rotate by",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "90 degrees clockwise", "tag": "90" },
+                            { "title": "180 degrees", "tag": "180" },
+                            { "title": "270 degrees clockwise", "tag": "270" },
+                            { "title": "90 degrees counter-clockwise", "tag": "-90" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 131,
+                        "properties": {
+                          "prompt": "all - or e.g. 1-3,5,end",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 307,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 208,
+            "properties": {
+              "title": "Crop",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 185,
+                        "properties": {
+                          "title": "Mode",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Inset by margins", "tag": "margins" },
+                            { "title": "Absolute rectangle", "tag": "rect" }
+                          ],
+                          "actionID": "PDFUtil.crop.mode.changed"
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Values",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 186,
+                        "properties": {
+                          "prompt": "left,bottom,right,top margins in points",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 187,
+                        "properties": {
+                          "title": "Page box",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 300 },
+                          "options": [
+                            { "title": "Crop box", "tag": "crop" },
+                            { "title": "Media box", "tag": "media" },
+                            { "title": "Art box", "tag": "art" },
+                            { "title": "Bleed box", "tag": "bleed" },
+                            { "title": "Trim box", "tag": "trim" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Pages",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 188,
+                        "properties": {
+                          "prompt": "all - or e.g. 1-3,5,end",
+                          "frame": { "width": 260 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 308,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 209,
+            "properties": {
+              "title": "Split",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Every",
+                          "frame": { "width": 80, "alignment": "trailing" }
+                        }
+                      },
+                      {
+                        "type": "TextField",
+                        "id": 150,
+                        "properties": {
+                          "prompt": "pages per part (default 1)",
+                          "frame": { "width": 160 }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Toggle",
+                    "id": 151,
+                    "properties": {
+                      "title": "One part per outline chapter instead",
+                      "isOn": false,
+                      "style": "checkbox",
+                      "actionID": "PDFUtil.split.mode.changed"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 309,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 210,
+            "properties": {
+              "title": "Merge",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Every PDF in the list is joined into one document, in list order.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 310,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
           }
         ]
       },

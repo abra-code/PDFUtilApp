@@ -58,8 +58,16 @@ GROUP_PLACEHOLDER_ID=198
 GROUP_REDUCE_ID=200
 GROUP_RENDER_ID=201
 GROUP_TEXT_ID=202
+GROUP_ENCRYPT_ID=203
+GROUP_DECRYPT_ID=204
+GROUP_EXTRACT_ID=205
+GROUP_DELETE_ID=206
+GROUP_ROTATE_ID=207
+GROUP_CROP_ID=208
+GROUP_SPLIT_ID=209
+GROUP_MERGE_ID=210
 
-SETTINGS_PANEL_IDS="198 200 201 202"
+SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210"
 
 # Reduce controls (id band 70-80)
 RED_QUALITY_ID=72
@@ -82,12 +90,75 @@ RND_RANGE_ID=174
 TXT_RANGE_ID=175
 TXT_PAGE_BREAKS_ID=176
 
+# Set Password controls (id band 110-121).
+#
+# Each password is typed twice. This is the one typo the tool can never recover
+# from: a wrong password on Remove Password merely fails against the file, but a
+# wrong password on Set Password is written into the document, so nobody can
+# open the result and nothing here can report what was actually typed.
+ENC_USER_PW_ID=110
+ENC_USER_PW_CONFIRM_ID=111
+ENC_OWNER_PW_ID=112
+ENC_OWNER_PW_CONFIRM_ID=113
+
+# Permissions: three Pickers and one Toggle rather than the eight checkboxes
+# pdfutil's --allow list suggests, because the eight flags are not independent.
+# Verified against the raw /P bits (pdfutil writes them, qpdf reads them back):
+#
+#   --allow high-quality-printing  ->  print low AND high resolution
+#   --allow printing               ->  print low resolution only
+#   --allow copying                ->  extract for any purpose AND accessibility
+#   --allow accessibility          ->  extract for accessibility only
+#   --allow changes                ->  modify forms, annotations and other
+#   --allow commenting             ->  modify forms and annotations
+#   --allow forms                  ->  modify forms only
+#   --allow assembly               ->  document assembly only
+#
+# So three of the four groups are ladders where each rung implies the ones below
+# it, and one flag per ladder is sufficient - passing "printing,high-quality-
+# printing" writes exactly the bits "high-quality-printing" writes alone. Eight
+# checkboxes would let the user express combinations that collapse to the same
+# file, which is eight switches pretending to be independent.
+#
+# Note pdfutil's help states the coupling the other way round ("granting
+# printing also permits high-quality-printing"). That describes PDFKit's
+# permission *reporting*, which conflates the two print bits; the bits actually
+# written follow the table above.
+ENC_PRINTING_ID=114
+ENC_COPYING_ID=115
+ENC_CHANGES_ID=116
+ENC_ASSEMBLY_ID=117
+
+# Remove Password controls. 122 rather than 120: the encrypt band above grew to
+# hold the two confirmation fields.
+DEC_PASSWORD_ID=122
+
+# Page operation controls
+EXT_RANGE_ID=140
+DEL_RANGE_ID=141
+ROT_ANGLE_ID=130
+ROT_RANGE_ID=131
+SPLIT_EVERY_ID=150
+SPLIT_CHAPTERS_ID=151
+CROP_MODE_ID=185
+CROP_VALUES_ID=186
+CROP_BOX_ID=187
+CROP_RANGE_ID=188
+
 # Per-section structure notice Text elements (band 300-319, one per GroupBox).
 # Their wording is written at runtime by structure_notice so the prose lives in
 # exactly one place - the same table the Stage 7 pre-flight alert will read.
 NOTICE_REDUCE_ID=300
 NOTICE_RENDER_ID=301
 NOTICE_TEXT_ID=302
+NOTICE_ENCRYPT_ID=303
+NOTICE_DECRYPT_ID=304
+NOTICE_EXTRACT_ID=305
+NOTICE_DELETE_ID=306
+NOTICE_ROTATE_ID=307
+NOTICE_CROP_ID=308
+NOTICE_SPLIT_ID=309
+NOTICE_MERGE_ID=310
 
 # Runtime tools
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
@@ -570,6 +641,30 @@ structure_notice() {
         text)
             echo "Extracts the existing text layer only. Scanned pages have none and come out empty - use OCR for those."
             ;;
+        encrypt)
+            echo "Writes 128-bit AES (revision 4): ASCII passwords only, and only their first 32 characters count. Use QuickPDF's 256-bit AES if you need more. Permissions bind only readers who open with the user password, so a single password serving as both restricts nobody."
+            ;;
+        decrypt)
+            echo "Saves an unlocked copy and leaves the original untouched."
+            ;;
+        extract)
+            echo "Keeps the listed pages in the listed order, so repeats and reordering are legal. Rebuilds the document: the outline is not carried over."
+            ;;
+        delete)
+            echo "Edits in place and keeps the outline, so entries pointing at removed pages may dangle."
+            ;;
+        rotate)
+            echo "Lossless: only each page's rotation entry changes. Degrees are added to the current rotation, not set - rotating 90 twice gives 180."
+            ;;
+        crop)
+            echo "Lossless: content is untouched and only the page box changes, so cropped-away material is hidden rather than removed."
+            ;;
+        split)
+            echo "Each part keeps its pages' annotations, links and form fields; the document outline is not carried into the parts."
+            ;;
+        merge)
+            echo "Inputs are joined in list order. Page-level structure is carried over; the document outline is not merged across inputs."
+            ;;
         *)
             echo ""
             ;;
@@ -580,10 +675,18 @@ structure_notice() {
 # or "" when that section has no notice element.
 notice_id_for_operation() {
     case "$1" in
-        reduce) echo ${NOTICE_REDUCE_ID} ;;
-        render) echo ${NOTICE_RENDER_ID} ;;
-        text)   echo ${NOTICE_TEXT_ID} ;;
-        *)      echo "" ;;
+        reduce)  echo ${NOTICE_REDUCE_ID} ;;
+        render)  echo ${NOTICE_RENDER_ID} ;;
+        text)    echo ${NOTICE_TEXT_ID} ;;
+        encrypt) echo ${NOTICE_ENCRYPT_ID} ;;
+        decrypt) echo ${NOTICE_DECRYPT_ID} ;;
+        extract) echo ${NOTICE_EXTRACT_ID} ;;
+        delete)  echo ${NOTICE_DELETE_ID} ;;
+        rotate)  echo ${NOTICE_ROTATE_ID} ;;
+        crop)    echo ${NOTICE_CROP_ID} ;;
+        split)   echo ${NOTICE_SPLIT_ID} ;;
+        merge)   echo ${NOTICE_MERGE_ID} ;;
+        *)       echo "" ;;
     esac
 }
 
@@ -591,10 +694,18 @@ notice_id_for_operation() {
 # placeholder for the operations later stages still have to build.
 panel_for_operation() {
     case "$1" in
-        reduce) echo ${GROUP_REDUCE_ID} ;;
-        render) echo ${GROUP_RENDER_ID} ;;
-        text)   echo ${GROUP_TEXT_ID} ;;
-        *)      echo ${GROUP_PLACEHOLDER_ID} ;;
+        reduce)  echo ${GROUP_REDUCE_ID} ;;
+        render)  echo ${GROUP_RENDER_ID} ;;
+        text)    echo ${GROUP_TEXT_ID} ;;
+        encrypt) echo ${GROUP_ENCRYPT_ID} ;;
+        decrypt) echo ${GROUP_DECRYPT_ID} ;;
+        extract) echo ${GROUP_EXTRACT_ID} ;;
+        delete)  echo ${GROUP_DELETE_ID} ;;
+        rotate)  echo ${GROUP_ROTATE_ID} ;;
+        crop)    echo ${GROUP_CROP_ID} ;;
+        split)   echo ${GROUP_SPLIT_ID} ;;
+        merge)   echo ${GROUP_MERGE_ID} ;;
+        *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }
 
@@ -617,6 +728,34 @@ apply_render_format_state() {
         "$dialog_tool" "$window_uuid" ${RND_TRANSPARENT_ID} omc_disable
     else
         "$dialog_tool" "$window_uuid" ${RND_TRANSPARENT_ID} omc_enable
+    fi
+}
+
+# Enable the crop value field's companions for the chosen mode.
+#
+# --rect and --margins both take four comma-separated numbers but mean opposite
+# things, so the prompt has to say which one is being typed. Called when the
+# mode picker changes and when the panel first appears.
+apply_crop_mode_state() {
+    if [ "$OMC_ACTIONUI_VIEW_185_VALUE" = "rect" ]; then
+        "$dialog_tool" "$window_uuid" ${CROP_VALUES_ID} \
+            omc_set_property "prompt" "X,Y,W,H in points from the bottom-left"
+        # --rect is absolute against the media box, so --box picks which box to
+        # write, not which box to measure from. Leave it live either way.
+    else
+        "$dialog_tool" "$window_uuid" ${CROP_VALUES_ID} \
+            omc_set_property "prompt" "left,bottom,right,top margins in points"
+    fi
+}
+
+# Enable exactly the split controls the chosen mode uses. --chapters and --every
+# are alternatives; pdfutil takes --every silently when both are passed, so the
+# UI must not imply the chapter count is also in play.
+apply_split_mode_state() {
+    if [ "$OMC_ACTIONUI_VIEW_151_VALUE" = "true" ]; then
+        "$dialog_tool" "$window_uuid" ${SPLIT_EVERY_ID} omc_disable
+    else
+        "$dialog_tool" "$window_uuid" ${SPLIT_EVERY_ID} omc_enable
     fi
 }
 
@@ -647,13 +786,24 @@ apply_operation_panel() {
     fi
 
     if [ "$want" = "${GROUP_PLACEHOLDER_ID}" ]; then
+        # Deliberately not a list of what does work: that sentence went stale
+        # every time a stage landed, and panel_for_operation above is already
+        # the authoritative record of which operations have been built.
         "$dialog_tool" "$window_uuid" ${GROUP_PLACEHOLDER_ID} \
             "$(operation_label "$op") is not available yet.
-Reduce File Size, Export Page Images and Extract Text work now."
+Pick another operation, or use QuickPDF if it offers this one."
     fi
 
     if [ "$want" = "${GROUP_RENDER_ID}" ]; then
         apply_render_format_state
+    fi
+
+    if [ "$want" = "${GROUP_CROP_ID}" ]; then
+        apply_crop_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_SPLIT_ID}" ]; then
+        apply_split_mode_state
     fi
 }
 
@@ -681,6 +831,202 @@ render_suffix() {
         heic) echo ".heic" ;;
         *)    echo ".png" ;;
     esac
+}
+
+# Append -p RANGE to PDFUTIL_ARGS, but only when the field holds something.
+#
+# Every optional page-range field goes through here so the emptiness test and
+# the value passed are the SAME string. Testing the raw field and then passing a
+# trimmed copy is the bug this replaces: a field holding only a space is
+# non-empty, so -p was added, but it trimmed to "" and pdfutil rejected the run
+# with "empty page-range term in ''" - an optional field the user meant to leave
+# blank, failing the whole operation with a parser message.
+#
+# Arguments: raw field value
+add_page_range() {
+    local range="$(trim_spaces "$1")"
+    if [ -n "$range" ]; then
+        PDFUTIL_ARGS+=(-p "$range")
+    fi
+    return 0
+}
+
+# Echo the rotation in degrees, defaulting to 90. Only the four values pdfutil
+# accepts get through; anything else would be a usage error carrying a stale
+# picker value the user never chose.
+rotate_angle() {
+    case "$OMC_ACTIONUI_VIEW_130_VALUE" in
+        90 | 180 | 270 | -90) echo "$OMC_ACTIONUI_VIEW_130_VALUE" ;;
+        *) echo "90" ;;
+    esac
+}
+
+# Echo the page box to write, defaulting to crop (pdfutil's own default).
+crop_box() {
+    case "$OMC_ACTIONUI_VIEW_187_VALUE" in
+        media | crop | art | bleed | trim) echo "$OMC_ACTIONUI_VIEW_187_VALUE" ;;
+        *) echo "crop" ;;
+    esac
+}
+
+# Echo a pages-per-part count of at least 1.
+#
+# Digits only, and length-capped before the numeric comparison: [ -gt ] on a
+# value wider than a 64-bit integer is an error, not a false, so an unbounded
+# field could take the guard down instead of being clamped by it.
+# Arguments: value fallback
+clamp_every() {
+    local v="$(trim_spaces "$1")"
+    case "$v" in
+        "" | *[!0-9]*) echo "$2"; return ;;
+    esac
+    if [ ${#v} -gt 9 ]; then echo "999999999"; return; fi
+    v=$((10#$v))
+    [ "$v" -lt 1 ] && v="$2"
+    echo "$v"
+}
+
+# The --allow list that grants everything, in the order encrypt_allow_list
+# emits. Matching it means every group is at its most permissive, which is
+# exactly what omitting --allow does - so the flag can be left off entirely.
+ENC_ALLOW_ALL="high-quality-printing,copying,changes,assembly"
+
+# Echo the comma-joined --allow list for the four permission controls.
+#
+# One flag per group: each is the top of a ladder that implies the rungs below
+# it, so "high-quality-printing" alone writes the same bits as
+# "printing,high-quality-printing" (see the id block near the top of this file
+# for the verified table). "none" contributes nothing.
+#
+# An empty result means every permission was denied. pdfutil cannot express
+# that - `--allow ""` is a usage error and omitting the flag grants everything -
+# so start.batch checks for it and refuses before a run starts.
+encrypt_allow_list() {
+    local allow=""
+
+    case "$OMC_ACTIONUI_VIEW_114_VALUE" in
+        printing | high-quality-printing) allow="$OMC_ACTIONUI_VIEW_114_VALUE" ;;
+        none) ;;
+        # Unset means the picker has not reported yet, which is its first and
+        # most permissive option. Defaulting the other way would silently
+        # restrict a document the user never asked to restrict.
+        *) allow="high-quality-printing" ;;
+    esac
+
+    case "$OMC_ACTIONUI_VIEW_115_VALUE" in
+        copying | accessibility) allow="${allow:+$allow,}$OMC_ACTIONUI_VIEW_115_VALUE" ;;
+        none) ;;
+        *) allow="${allow:+$allow,}copying" ;;
+    esac
+
+    case "$OMC_ACTIONUI_VIEW_116_VALUE" in
+        changes | commenting | forms) allow="${allow:+$allow,}$OMC_ACTIONUI_VIEW_116_VALUE" ;;
+        none) ;;
+        *) allow="${allow:+$allow,}changes" ;;
+    esac
+
+    # A Toggle reports "true"/"false"; unset is its declared isOn, which is on.
+    if [ "$OMC_ACTIONUI_VIEW_117_VALUE" != "false" ]; then
+        allow="${allow:+$allow,}assembly"
+    fi
+
+    echo "$allow"
+}
+
+# Echo why the chosen operation cannot run with the settings as they stand, or
+# "" when it can. The router turns a non-empty answer into an alert.
+#
+# These are the checks that must happen before a destination is chosen, because
+# the alternative is asking for a filename and only then reporting that the
+# passwords disagreed - by which point the user has committed to a location for
+# a file that was never going to be written.
+# Arguments: operation tag
+settings_problem() {
+    case "$1" in
+        encrypt) encrypt_settings_problem ;;
+        decrypt)
+            if [ -z "$OMC_ACTIONUI_VIEW_122_VALUE" ]; then
+                echo "Enter the password that opens these PDFs.
+
+pdfutil treats an empty password as a usage error rather than as a blank password."
+            fi
+            ;;
+        extract)
+            if [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_140_VALUE")" ]; then
+                echo "Enter the pages to keep, for example 1-5,8 or 3,1,2 to reorder."
+            fi
+            ;;
+        delete)
+            if [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_141_VALUE")" ]; then
+                echo "Enter the pages to remove, for example 2 or 4-6."
+            fi
+            ;;
+        crop)
+            local v="$(trim_spaces "$OMC_ACTIONUI_VIEW_186_VALUE")"
+            if [ -z "$v" ]; then
+                echo "Enter four comma-separated numbers in points."
+            elif ! printf '%s' "$v" | \
+                 /usr/bin/grep -Eq '^-?[0-9]+(\.[0-9]+)?(,-?[0-9]+(\.[0-9]+)?){3}$'; then
+                echo "Crop needs exactly four comma-separated numbers in points, for example 36,36,36,36.
+
+\"${v}\" is not in that form."
+            fi
+            ;;
+    esac
+}
+
+# Echo why Set Password cannot run, or "" when it can.
+encrypt_settings_problem() {
+    local user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
+    local owner_pw="$OMC_ACTIONUI_VIEW_112_VALUE"
+
+    # Checked before the empty test because a mismatch is the more specific
+    # diagnosis: it names the field that went wrong instead of asking for a
+    # password the user believes they already entered.
+    if [ "$user_pw" != "$OMC_ACTIONUI_VIEW_111_VALUE" ]; then
+        echo "The user password and its confirmation do not match.
+
+Retype both fields and try again."
+        return
+    fi
+    if [ "$owner_pw" != "$OMC_ACTIONUI_VIEW_113_VALUE" ]; then
+        echo "The owner password and its confirmation do not match.
+
+Retype both fields and try again."
+        return
+    fi
+    if [ -z "$user_pw" ] && [ -z "$owner_pw" ]; then
+        echo "Enter a user password, an owner password, or both.
+
+The user password is needed to open the file; the owner password grants full access to whoever has it."
+        return
+    fi
+
+    # Non-ASCII passwords are rejected outright by the writer: pdfutil exits 2
+    # with "failed to write PDF" and produces no file. Verified with cafe-acute,
+    # naive-diaeresis and Greek omega - so this is not "outside Latin-1", it is
+    # anything above plain ASCII, accents included.
+    #
+    # Caught here because the failure it replaces is uninformative: the user
+    # would pick a destination, wait, and then be told the PDF could not be
+    # written, with nothing pointing at the password field as the cause.
+    if printf '%s%s' "$user_pw" "$owner_pw" | LC_ALL=C /usr/bin/grep -q '[^ -~]'; then
+        echo "Passwords must use plain ASCII characters only.
+
+The 128-bit AES handler pdfutil writes cannot store accented or non-Latin characters, and refuses to write the file at all rather than producing one nobody can open. QuickPDF's 256-bit AES option accepts them."
+        return
+    fi
+
+    # pdfutil has no way to say "grant nothing": omitting --allow grants
+    # everything and passing it an empty list is a usage error. Saying so here
+    # beats letting the run fail with "expects a comma-separated flag list",
+    # which does not hint at which control caused it.
+    if [ -z "$(encrypt_allow_list)" ]; then
+        echo "Set at least one permission to something other than \"Not allowed\".
+
+A PDF cannot deny every permission at once - that combination has no representation in the format, so pdfutil refuses it."
+        return
+    fi
 }
 
 # Build the pdfutil invocation for an operation into these globals:
@@ -744,20 +1090,120 @@ build_pdfutil_args() {
             if [ "$OMC_ACTIONUI_VIEW_173_VALUE" = "true" ] && [ "$fmt" != "jpeg" ]; then
                 PDFUTIL_ARGS+=(--transparent)
             fi
-            if [ -n "$OMC_ACTIONUI_VIEW_174_VALUE" ]; then
-                PDFUTIL_ARGS+=(-p "$OMC_ACTIONUI_VIEW_174_VALUE")
-            fi
+            add_page_range "$OMC_ACTIONUI_VIEW_174_VALUE"
             ;;
 
         text)
             PDFUTIL_VERB="text"
             PDFUTIL_OUTPUT_KIND="text"
-            if [ -n "$OMC_ACTIONUI_VIEW_175_VALUE" ]; then
-                PDFUTIL_ARGS+=(-p "$OMC_ACTIONUI_VIEW_175_VALUE")
-            fi
+            add_page_range "$OMC_ACTIONUI_VIEW_175_VALUE"
             if [ "$OMC_ACTIONUI_VIEW_176_VALUE" = "true" ]; then
                 PDFUTIL_ARGS+=(--page-breaks)
             fi
+            ;;
+
+        encrypt)
+            PDFUTIL_VERB="encrypt"
+            PDFUTIL_OUTPUT_KIND="pdf"
+
+            local user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
+            local owner_pw="$OMC_ACTIONUI_VIEW_112_VALUE"
+
+            # Which password travels on stdin is a real trade, because pdfutil
+            # accepts at most one that way and the other lands in the argument
+            # list, where `ps` can read it for the life of the call.
+            #
+            # The user password goes on stdin because it is the one whose
+            # disclosure breaks confidentiality of the document itself; the
+            # owner password only unlocks the permission bits. When just one
+            # password was entered, nothing goes inline at all - pdfutil uses
+            # the single password for both roles.
+            #
+            # This protects the argument list, not the environment: OMC exports
+            # every control value to each handler, so the values are also in
+            # this process's environment. Narrowing the exposure is the honest
+            # claim here, not eliminating it.
+            if [ -n "$user_pw" ]; then
+                PDFUTIL_STDIN_PW="$user_pw"
+                PDFUTIL_ARGS+=(--user-password-stdin)
+                if [ -n "$owner_pw" ]; then
+                    PDFUTIL_ARGS+=(--owner-password "$owner_pw")
+                fi
+            else
+                # Owner password only: it can take the stdin slot instead.
+                PDFUTIL_STDIN_PW="$owner_pw"
+                PDFUTIL_ARGS+=(--owner-password-stdin)
+            fi
+
+            # Omitting --allow grants everything, which is also pdfutil's
+            # default. An empty list is a usage error rather than "grant
+            # nothing", so start.batch refuses that case before we get here.
+            local allow="$(encrypt_allow_list)"
+            if [ -n "$allow" ] && [ "$allow" != "$ENC_ALLOW_ALL" ]; then
+                PDFUTIL_ARGS+=(--allow "$allow")
+            fi
+            ;;
+
+        decrypt)
+            PDFUTIL_VERB="decrypt"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            PDFUTIL_STDIN_PW="$OMC_ACTIONUI_VIEW_122_VALUE"
+            PDFUTIL_ARGS+=(--password-stdin)
+            ;;
+
+        extract)
+            PDFUTIL_VERB="pages"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            PDFUTIL_ARGS+=(--extract "$(trim_spaces "$OMC_ACTIONUI_VIEW_140_VALUE")")
+            ;;
+
+        delete)
+            PDFUTIL_VERB="pages"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            PDFUTIL_ARGS+=(--delete "$(trim_spaces "$OMC_ACTIONUI_VIEW_141_VALUE")")
+            ;;
+
+        rotate)
+            PDFUTIL_VERB="rotate"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            add_page_range "$OMC_ACTIONUI_VIEW_131_VALUE"
+            # Degrees is positional and must precede the input path. run_pdfutil
+            # emits PDFUTIL_ARGS before "--force -o OUT IN", so appending it last
+            # here puts it in the only place the parser accepts it.
+            PDFUTIL_ARGS+=("$(rotate_angle)")
+            ;;
+
+        crop)
+            PDFUTIL_VERB="crop"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            local crop_values="$(trim_spaces "$OMC_ACTIONUI_VIEW_186_VALUE")"
+            if [ "$OMC_ACTIONUI_VIEW_185_VALUE" = "rect" ]; then
+                PDFUTIL_ARGS+=(--rect "$crop_values")
+            else
+                PDFUTIL_ARGS+=(--margins "$crop_values")
+            fi
+            PDFUTIL_ARGS+=(--box "$(crop_box)")
+            add_page_range "$OMC_ACTIONUI_VIEW_188_VALUE"
+            ;;
+
+        split)
+            PDFUTIL_VERB="split"
+            # Not "pdf": one input becomes a numbered series, so -o is a prefix
+            # and the destination has to be a folder however few files are in
+            # the list. See the router.
+            PDFUTIL_OUTPUT_KIND="parts"
+            if [ "$OMC_ACTIONUI_VIEW_151_VALUE" = "true" ]; then
+                PDFUTIL_ARGS+=(--chapters)
+            else
+                PDFUTIL_ARGS+=(--every "$(clamp_every "$OMC_ACTIONUI_VIEW_150_VALUE" 1)")
+            fi
+            ;;
+
+        merge)
+            PDFUTIL_VERB="merge"
+            # N inputs, 1 output: run_pdfutil takes a single input, so merge has
+            # its own call path in run_pdfutil_merge.
+            PDFUTIL_OUTPUT_KIND="merged"
             ;;
 
         *)
@@ -765,10 +1211,11 @@ build_pdfutil_args() {
             ;;
     esac
 
-    # No --password is added for any of these verbs. Protected PDFs are out of
-    # scope outside Set Password and Remove Password, and start.batch refuses
-    # them before a run begins. Stage 5's encrypt/decrypt paths carry their own
-    # secret through PDFUTIL_STDIN_PW, which keeps it out of the process table.
+    # No --password is added for the verbs that read an existing document.
+    # Protected PDFs are out of scope outside Set Password and Remove Password,
+    # and start.batch refuses them before a run begins. The encrypt and decrypt
+    # paths above carry their secret through PDFUTIL_STDIN_PW instead, which
+    # keeps it out of the argument list.
     return 0
 }
 
@@ -787,6 +1234,15 @@ build_pdfutil_args() {
 #
 # Arguments: input output
 # Echoes pdfutil's combined stdout and stderr; returns pdfutil's exit code.
+#
+# When PDFUTIL_STDIN_PW is set the password is fed on stdin, so the secret stays
+# out of the argument list. Doing it here rather than in a second "run it with a
+# password" function means no runner has to know which operations carry one -
+# encrypt and decrypt work through the same three call sites as every other
+# verb, and a future password-bearing verb needs no runner change at all.
+#
+# Arguments: input output
+# Echoes pdfutil's combined stdout and stderr; returns pdfutil's exit code.
 run_pdfutil() {
     if [ -z "$PDFUTIL_VERB" ]; then
         echo "internal error: build_pdfutil_args did not set a verb"
@@ -796,16 +1252,42 @@ run_pdfutil() {
         echo "internal error: refusing to run pdfutil without an output path"
         return 1
     fi
+    if [ -n "$PDFUTIL_STDIN_PW" ]; then
+        printf '%s' "$PDFUTIL_STDIN_PW" | _exec_pdfutil "$1" "$2"
+    else
+        # </dev/null so a verb that reads stdin can never block on the caller's
+        # terminal; nothing here is meant to be interactive.
+        _exec_pdfutil "$1" "$2" </dev/null
+    fi
+}
+
+# The single place the binary is named with an output path. Kept separate only
+# so run_pdfutil can choose stdin without writing this line twice - duplicating
+# it is how -o or --force eventually goes missing from one of the copies.
+# Arguments: input output
+_exec_pdfutil() {
     "$PDFUTIL" "$PDFUTIL_VERB" "${PDFUTIL_ARGS[@]}" --force -o "$2" "$1" \
         "${PDFUTIL_TRAILING[@]}" 2>&1
 }
 
-# Same, with PDFUTIL_STDIN_PW fed on stdin so the secret never reaches the
-# process table. Used by the Stage 5 encrypt/decrypt paths; the -stdin flag
-# itself belongs in PDFUTIL_ARGS.
-# Arguments: input output
-run_pdfutil_stdin_pw() {
-    printf '%s' "$PDFUTIL_STDIN_PW" | run_pdfutil "$1" "$2"
+# Merge's own call path: N inputs, one output, so it cannot use run_pdfutil's
+# single-input shape. The -o and --force invariants are repeated here rather
+# than skipped - merge without --force fails against the staging file, and
+# merge without -o is a usage error rather than an in-place edit.
+#
+# Arguments: output, then one or more input paths
+run_pdfutil_merge() {
+    local out="$1"
+    shift
+    if [ -z "$out" ]; then
+        echo "internal error: refusing to run merge without an output path"
+        return 1
+    fi
+    if [ $# -eq 0 ]; then
+        echo "internal error: merge needs at least one input"
+        return 1
+    fi
+    "$PDFUTIL" merge "${PDFUTIL_ARGS[@]}" --force -o "$out" "$@" 2>&1
 }
 
 # ---------------------------------------------------------------------------
