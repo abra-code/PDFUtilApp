@@ -249,6 +249,19 @@
     },
     {
       "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.inspect.mode.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.inspect",
+      "EXECUTION_MODE": "exe_script_file_with_output_window",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.crop.mode.changed",
       "EXECUTION_MODE": "exe_script_file"
     },

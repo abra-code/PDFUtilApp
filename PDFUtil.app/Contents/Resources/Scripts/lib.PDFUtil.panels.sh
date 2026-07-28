@@ -60,6 +60,9 @@ structure_notice() {
         frompages)
             echo "The one operation whose inputs are images rather than PDFs; pages come out in list order. An animated GIF or multi-page TIFF contributes one page per frame. A PDF in the list is redrawn, losing annotations, links, the outline and form fields - use Merge to combine PDFs instead."
             ;;
+        inspect)
+            echo "Read-only: nothing is written and no destination is asked for. Results open in an output window. Search reports a count per file, so a document with no matches says so instead of printing nothing."
+            ;;
         metadata)
             echo "Edits the Info dictionary and keeps the document's structure. PDFKit's writer resets Producer and both dates on every save whatever is set here, so those three are not offered as fields."
             ;;
@@ -89,6 +92,7 @@ notice_id_for_operation() {
         flatten)   echo ${NOTICE_FLATTEN_ID} ;;
         frompages) echo ${NOTICE_FROMPAGES_ID} ;;
         metadata)  echo ${NOTICE_METADATA_ID} ;;
+        inspect)   echo ${NOTICE_INSPECT_ID} ;;
         *)       echo "" ;;
     esac
 }
@@ -113,6 +117,7 @@ panel_for_operation() {
         flatten)   echo ${GROUP_FLATTEN_ID} ;;
         frompages) echo ${GROUP_FROMPAGES_ID} ;;
         metadata)  echo ${GROUP_METADATA_ID} ;;
+        inspect)   echo ${GROUP_INSPECT_ID} ;;
         *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }
@@ -185,6 +190,19 @@ apply_reduce_mode_state() {
     "$dialog_tool" "$window_uuid" ${RED_DPI_ID} "$state"
     "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_ON_ID} "$state"
     "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_PX_ID} "$state"
+}
+
+# Show the search query field only in the mode that uses it.
+#
+# The other three inspect modes take no argument, so a live query box would be a
+# control with nothing to act on. Hidden rather than disabled: a greyed-out field
+# still reads as "something I could turn on", and there is no toggle to turn on.
+apply_inspect_mode_state() {
+    if [ "$OMC_ACTIONUI_VIEW_222_VALUE" = "search" ]; then
+        "$dialog_tool" "$window_uuid" ${INSPECT_QUERY_ROW_ID} omc_show
+    else
+        "$dialog_tool" "$window_uuid" ${INSPECT_QUERY_ROW_ID} omc_hide
+    fi
 }
 
 # Switch off the metadata fields that stripping makes meaningless.
@@ -300,5 +318,9 @@ Pick another operation, or use QuickPDF if it offers this one."
 
     if [ "$want" = "${GROUP_METADATA_ID}" ]; then
         apply_metadata_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_INSPECT_ID}" ]; then
+        apply_inspect_mode_state
     fi
 }

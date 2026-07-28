@@ -81,8 +81,9 @@ GROUP_WATERMARK_ID=212
 GROUP_FLATTEN_ID=213
 GROUP_FROMPAGES_ID=214
 GROUP_METADATA_ID=215
+GROUP_INSPECT_ID=216
 
-SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215"
+SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216"
 
 # Reduce controls (id band 70-80)
 RED_QUALITY_ID=72
@@ -191,6 +192,25 @@ META_KEYWORDS_ID=193
 META_CREATOR_ID=194
 META_STRIP_ID=195
 
+# Inspect controls (id band 222-224).
+#
+# One sub-picker rather than four entries in the operation menu: `search` is the
+# only mode that needs a value, so four top-level entries would put a query field
+# in the panel for three operations that have no use for it - and would grow the
+# operation list by four for one read-only feature.
+#
+# NOT 217-219, which the plan's id map assigns to Linearize, PDF/A and Fill Form
+# GroupBoxes in Stage 10: 200-219 is the GroupBox band, and spending three of its
+# last ids on one operation's controls would leave Stage 10 with nowhere to put
+# its panels. Allocated above it instead, for the same reason FP_DPI_ID is.
+#
+# The query field needs two ids, not one. Hiding a bare TextField would strand
+# its "Find:" label, so the label and the field share an HStack (223) that gets
+# hidden, and the field itself is 224.
+INSPECT_MODE_ID=222
+INSPECT_QUERY_ROW_ID=223
+INSPECT_QUERY_ID=224
+
 # Build PDF from Images controls (id band 220-221).
 #
 # Allocated above the GroupBox band (200-219) rather than squeezed next to the
@@ -235,6 +255,7 @@ NOTICE_WATERMARK_ID=312
 NOTICE_FLATTEN_ID=313
 NOTICE_FROMPAGES_ID=314
 NOTICE_METADATA_ID=315
+NOTICE_INSPECT_ID=316
 
 # Runtime tools
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
@@ -264,6 +285,28 @@ TAB="$(printf '\t')"
 # summary line, size formatting, file classification and the operation the
 # picker is on. Anything used by one area belongs in that area's lib instead.
 # ---------------------------------------------------------------------------
+
+# Echo pdfutil's own diagnostic, without its "pdfutil: " prefix.
+#
+# Prefer the line that starts with "pdfutil" over the first line, because
+# CoreGraphics and PDFKit write their own noise to the same stream and often get
+# there first. A truncated PDF, for instance, leads with "CoreGraphics PDF has
+# logged an error. Set environment variable CG_PDF_VERBOSE to learn more.",
+# which tells the user nothing about their file. Falls back to the first line
+# when pdfutil said nothing recognisable.
+#
+# Branch on the exit code, never on this being non-empty: pdfutil writes
+# harmless PDFKit log lines to stderr on permission-restricted files while
+# still exiting 0.
+first_error_line() {
+    local own
+    own="$(printf '%s' "$1" | /usr/bin/grep -m1 '^pdfutil[: ]')"
+    if [ -n "$own" ]; then
+        printf '%s' "$own" | /usr/bin/sed 's/^pdfutil[a-z. ]*: //'
+        return
+    fi
+    printf '%s' "$1" | /usr/bin/head -1
+}
 
 # Set the Summary text view content
 # Arguments: text
@@ -380,7 +423,12 @@ current_operation() {
 }
 
 # Echo the human-readable name of an operation, for messages the user reads.
-# Keep in sync with the Operation picker titles in Base.lproj/PDFUtil.json.
+#
+# Normally the Operation picker's own title, so a message names the thing the
+# user picked. "inspect" is the exception: its picker entry lists the four
+# reports ("Document Info / Outline / Fields / Search") because that is what the
+# menu has to disambiguate, and pasting that into a sentence reads badly. The
+# section is called Inspect, and that is the word used here.
 operation_label() {
     case "$1" in
         reduce)    echo "Reduce File Size" ;;

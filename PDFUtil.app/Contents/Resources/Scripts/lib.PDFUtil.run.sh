@@ -241,20 +241,6 @@ unique_render_prefix() {
     echo "${candidate}${suffix}"
 }
 
-# Echo the first line of a pdfutil diagnostic, without its "pdfutil: " prefix.
-# Branch on the exit code, never on this being non-empty: pdfutil writes
-# harmless PDFKit log lines to stderr on permission-restricted files while
-# still exiting 0.
-first_error_line() {
-    local own
-    own="$(printf '%s' "$1" | /usr/bin/grep -m1 '^pdfutil[: ]')"
-    if [ -n "$own" ]; then
-        printf '%s' "$own" | /usr/bin/sed 's/^pdfutil[a-z. ]*: //'
-        return
-    fi
-    printf '%s' "$1" | /usr/bin/head -1
-}
-
 # Shared body of the three Save As runners - PDFUtil.run.single (PDF),
 # PDFUtil.run.text (.txt) and PDFUtil.run.image (one rendered page). They differ
 # only in the Save panel's default file name, which is declared per command in
