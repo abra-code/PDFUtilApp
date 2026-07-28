@@ -249,6 +249,11 @@
     },
     {
       "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.assemble.mode.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.inspect.mode.changed",
       "EXECUTION_MODE": "exe_script_file"
     },

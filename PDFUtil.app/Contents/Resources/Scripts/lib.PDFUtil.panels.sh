@@ -205,6 +205,23 @@ apply_inspect_mode_state() {
     fi
 }
 
+# Show the one row the chosen page-sizing mode actually uses.
+#
+# Hidden rather than disabled, for the same reason as the Inspect query box: a
+# greyed-out paper picker reads as something there is a way to switch on, and
+# here there is not - picking the other mode IS the switch. "From each image's
+# DPI" needs no row at all, so both are hidden.
+apply_assemble_mode_state() {
+    local mode="$(assemble_mode)"
+    local paper=omc_hide dpi=omc_hide
+    case "$mode" in
+        fit) paper=omc_show ;;
+        dpi) dpi=omc_show ;;
+    esac
+    "$dialog_tool" "$window_uuid" ${FP_PAGE_SIZE_ROW_ID} "$paper"
+    "$dialog_tool" "$window_uuid" ${FP_DPI_ROW_ID} "$dpi"
+}
+
 # Switch off the metadata fields that stripping makes meaningless.
 #
 # --strip removes every attribute, so a --set alongside it would be a value the
@@ -314,6 +331,10 @@ Pick another operation, or use QuickPDF if it offers this one."
 
     if [ "$want" = "${GROUP_WATERMARK_ID}" ]; then
         apply_watermark_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_FROMPAGES_ID}" ]; then
+        apply_assemble_mode_state
     fi
 
     if [ "$want" = "${GROUP_METADATA_ID}" ]; then

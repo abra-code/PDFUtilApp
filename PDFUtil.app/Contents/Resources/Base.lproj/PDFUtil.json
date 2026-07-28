@@ -1555,12 +1555,56 @@
                     "type": "HStack",
                     "properties": { "spacing": 8 },
                     "children": [
+                      { "type": "Text", "properties": { "text": "Page size:" } },
+                      {
+                        "type": "Picker",
+                        "id": 221,
+                        "properties": {
+                          "pickerStyle": "menu",
+                          "options": [
+                            { "title": "Fit to a standard page", "tag": "fit" },
+                            { "title": "From each image's own DPI", "tag": "image" },
+                            { "title": "Assume a DPI", "tag": "dpi" }
+                          ],
+                          "actionID": "PDFUtil.assemble.mode.changed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "id": 227,
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      { "type": "Text", "properties": { "text": "Paper:" } },
+                      {
+                        "type": "Picker",
+                        "id": 225,
+                        "properties": {
+                          "pickerStyle": "menu",
+                          "options": [
+                            { "title": "US Letter", "tag": "letter" },
+                            { "title": "A4", "tag": "a4" },
+                            { "title": "US Legal", "tag": "legal" },
+                            { "title": "Tabloid", "tag": "tabloid" },
+                            { "title": "A3", "tag": "a3" },
+                            { "title": "A5", "tag": "a5" }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "id": 226,
+                    "properties": { "spacing": 8, "hidden": true },
+                    "children": [
                       { "type": "Text", "properties": { "text": "Assume DPI:" } },
                       {
                         "type": "TextField",
                         "id": 220,
                         "properties": {
-                          "prompt": "leave blank to use each image's own DPI",
+                          "prompt": "150",
                           "frame": { "width": 240 }
                         }
                       }
@@ -1569,7 +1613,7 @@
                   {
                     "type": "Text",
                     "properties": {
-                      "text": "The DPI recorded in an image decides how large its page is. Override it here to force every page to one scale.",
+                      "text": "Fitting scales each image to the page, keeping its shape, and turns the page sideways for a landscape picture. Sizing from the image instead makes the page as many points across as the picture has pixels - faithful, but photos record 72 DPI, so a phone photo becomes a page five feet wide.",
                       "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }

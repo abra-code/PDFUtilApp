@@ -229,6 +229,18 @@ clamp_page_dpi() {
     echo "$d"
 }
 
+# Echo the paper size to fit to, defaulting to letter.
+#
+# The list matches pdfutil's own --page-size names exactly. Anything else would
+# be a usage error carrying a picker value the user never chose, so an
+# unrecognised value falls back rather than being passed through.
+assemble_page_size() {
+    case "$OMC_ACTIONUI_VIEW_225_VALUE" in
+        letter | legal | tabloid | a3 | a4 | a5) echo "$OMC_ACTIONUI_VIEW_225_VALUE" ;;
+        *) echo "letter" ;;
+    esac
+}
+
 # Echo the Inspect sub-mode, defaulting to info.
 #
 # Whitelisted for the same reason as the other pickers: a stale or transitional
@@ -515,14 +527,28 @@ build_pdfutil_args() {
             # Like merge, N inputs collapse to 1 output, so it takes the same
             # many-to-one runner path rather than the per-file loop.
             PDFUTIL_OUTPUT_KIND="assembled"
-            # --dpi overrides the DPI recorded in the image, which decides the
-            # page size. Only sent when the user typed something: pdfutil's
-            # default is to honour each image's own DPI, and there is no value
-            # here that means "leave it alone".
-            local fp_dpi="$(trim_spaces "$OMC_ACTIONUI_VIEW_220_VALUE")"
-            if [ -n "$fp_dpi" ]; then
-                PDFUTIL_ARGS+=(--dpi "$(clamp_page_dpi "$fp_dpi" 150)")
-            fi
+            # Three page-sizing modes, and only one of them sends nothing.
+            # --page-size and --dpi both decide how big a page is, so pdfutil
+            # refuses the pair; the picker is what keeps them apart here.
+            case "$(assemble_mode)" in
+                image)
+                    # pdfutil's own default: the page is as large as the image
+                    # says it is. No flag expresses this, it is the absence of
+                    # both others.
+                    ;;
+                dpi)
+                    # ALWAYS sent, even for a blank field. Picking this mode is
+                    # the statement that a DPI should be assumed, so a blank
+                    # field means the default the prompt shows - not "fall back
+                    # to the image's own DPI", which is the mode next door and
+                    # the one that produces the five-foot pages. clamp_page_dpi
+                    # turns blank and garbage alike into 150.
+                    PDFUTIL_ARGS+=(--dpi "$(clamp_page_dpi "$OMC_ACTIONUI_VIEW_220_VALUE" 150)")
+                    ;;
+                *)
+                    PDFUTIL_ARGS+=(--page-size "$(assemble_page_size)")
+                    ;;
+            esac
             ;;
 
         inspect)

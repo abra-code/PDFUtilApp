@@ -211,12 +211,29 @@ INSPECT_MODE_ID=222
 INSPECT_QUERY_ROW_ID=223
 INSPECT_QUERY_ID=224
 
-# Build PDF from Images controls (id band 220-221).
+# Build PDF from Images controls (id band 220-221 and 225-227).
 #
 # Allocated above the GroupBox band (200-219) rather than squeezed next to the
 # metadata fields: this operation had no band in the plan's id map, and the two
-# are unrelated. One control today, room for a second without moving anything.
+# are unrelated. 225-227 continue it past the Inspect controls at 222-224.
+#
+# THREE ways to size a page, because the honest default is not the useful one.
+# Without a page size pdfutil makes each page as large as its image claims to
+# be, and cameras record 72 DPI, so a 4284 px photo becomes a 4284 pt page -
+# 59 inches across. That is faithful to the file and almost never wanted, and it
+# also defeats Reduce, whose downsampling threshold is measured against the page:
+# an image sitting at 72 DPI is never "above 150 DPI" however many pixels it has.
+# Fitting to a real paper size is therefore the default, and the other two modes
+# stay available for the cases where the image's own scale is the point.
+#
+# Each optional row needs an id of its own, not just its control: hiding a bare
+# picker would strand its label, so label and control share an HStack that gets
+# hidden.
+ASSEMBLE_MODE_ID=221
 FP_DPI_ID=220
+FP_DPI_ROW_ID=226
+FP_PAGE_SIZE_ID=225
+FP_PAGE_SIZE_ROW_ID=227
 
 # Watermark controls (id band 160-168).
 #
@@ -452,6 +469,26 @@ operation_label() {
         frompages) echo "Build PDF from Images" ;;
         inspect)   echo "Inspect" ;;
         *)         echo "$1" ;;
+    esac
+}
+
+# Echo how Build PDF from Images should size its pages, defaulting to fit.
+#
+# Whitelisted like the other pickers: a stale or transitional value must not
+# choose a geometry. The default is the safe one rather than the faithful one -
+# see the FP_* id block above for why "each image's own DPI" turns an ordinary
+# photo into a five-foot page.
+#
+# Here in the core lib rather than in the argument builder because it has two
+# callers that must agree: build_pdfutil_args picks the flag from it, and
+# apply_assemble_mode_state picks which row to show. A second copy of this
+# whitelist is a panel that displays one mode while the run uses another. It is
+# the same reason render_format below lives here - the *.mode.changed handlers
+# source this lib and lib.PDFUtil.panels.sh, but NOT lib.PDFUtil.args.sh.
+assemble_mode() {
+    case "$OMC_ACTIONUI_VIEW_221_VALUE" in
+        image | dpi) echo "$OMC_ACTIONUI_VIEW_221_VALUE" ;;
+        *) echo "fit" ;;
     esac
 }
 
