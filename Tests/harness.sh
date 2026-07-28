@@ -8,7 +8,7 @@
 # those functions read is present. This file manufactures that environment.
 #
 # The stubs in Tests/stubs record what the app TRIED to do instead of doing it,
-# which is what makes the UI-facing behaviour testable at all: with the display
+# which is what makes the UI-facing behavior testable at all: with the display
 # locked (or on any headless machine) the only observable of "the panel hid the
 # query row" is the omc_dialog_control call that would have hidden it.
 

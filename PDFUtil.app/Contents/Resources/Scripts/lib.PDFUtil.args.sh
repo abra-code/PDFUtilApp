@@ -112,7 +112,7 @@ rotate_angle() {
 }
 
 # Echo the watermark position, defaulting to center. pdfutil exits 1 on an
-# unrecognised --position, so a stale or transitional picker value would turn
+# unrecognized --position, so a stale or transitional picker value would turn
 # into a usage error rather than a mark in the wrong corner.
 watermark_position() {
     case "$OMC_ACTIONUI_VIEW_162_VALUE" in
@@ -138,7 +138,7 @@ clamp_degrees() {
         "" | *[!0-9]*) echo "$2"; return ;;
     esac
     # Beyond nine digits the value is meaningless as an angle and would
-    # overflow the arithmetic that normalises it; take the default instead.
+    # overflow the arithmetic that normalizes it; take the default instead.
     if [ ${#v} -gt 9 ]; then echo "$2"; return; fi
     echo "${sign}$((10#$v))"
 }
@@ -172,7 +172,7 @@ clamp_opacity() {
 # than as a second flag. What the filter buys is that garbage in this field
 # stays in this field: a value the parser would accept and Vision would discard
 # never reaches the command line, so the invocation says what was really asked
-# for. Defence in depth, at the cost of one case label.
+# for. Defense in depth, at the cost of one case label.
 #
 # An empty list is correct and means "auto-detect".
 #
@@ -233,7 +233,7 @@ clamp_page_dpi() {
 #
 # The list matches pdfutil's own --page-size names exactly. Anything else would
 # be a usage error carrying a picker value the user never chose, so an
-# unrecognised value falls back rather than being passed through.
+# unrecognized value falls back rather than being passed through.
 assemble_page_size() {
     case "$OMC_ACTIONUI_VIEW_225_VALUE" in
         letter | legal | tabloid | a3 | a4 | a5) echo "$OMC_ACTIONUI_VIEW_225_VALUE" ;;
@@ -368,7 +368,7 @@ build_pdfutil_args() {
         # Its own operation, not a mode of Reduce. --gray selects the system Gray
         # Tone filter, which pdfutil builds INSTEAD of the recompression filter
         # and refuses to combine with -q/-r/-m. As a checkbox inside Reduce it
-        # had to grey out every other control in the panel and explain why, which
+        # had to gray out every other control in the panel and explain why, which
         # is a separate operation wearing a toggle's clothes.
         gray)
             PDFUTIL_VERB="reduce"

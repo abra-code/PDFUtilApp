@@ -12,7 +12,7 @@
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
 
-# Empty means the panel was cancelled. Leave the field alone in that case -
+# Empty means the panel was canceled. Leave the field alone in that case -
 # clearing it would make Cancel destructive, which is the one thing a cancel
 # button must never be.
 if [ -n "$OMC_DLG_CHOOSE_OBJECT_PATH" ]; then

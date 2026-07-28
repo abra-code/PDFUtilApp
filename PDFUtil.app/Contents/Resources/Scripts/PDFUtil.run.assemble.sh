@@ -56,10 +56,10 @@ run_pdfutil_frompages() {
 
 output_file="$OMC_DLG_SAVE_AS_PATH"
 if [ -z "$output_file" ]; then
-    # Cancelled. Clear whatever start.batch left in the Summary, or its
+    # Canceled. Clear whatever start.batch left in the Summary, or its
     # "Checking the file list..." progress line would sit there implying the
     # run is still going.
-    set_summary "Cancelled."
+    set_summary "Canceled."
     exit 0
 fi
 
@@ -137,7 +137,7 @@ page_count="$(pdf_page_count "$output_file")"
 
 # The page count is worth stating rather than echoing the input count: a
 # multi-frame GIF or TIFF contributes one page per frame, so "6 files ->
-# 11 pages" is the only place that behaviour becomes visible.
+# 11 pages" is the only place that behavior becomes visible.
 set_summary "Operation: $(operation_label "$operation")
 Built $(/usr/bin/basename "$output_file") from ${#inputs[@]} file(s)
 ${page_count} page(s), $(format_size "$built_size")

@@ -1,5 +1,5 @@
 #!/bin/bash
-# PDFUtil.ocr.mode.changed.sh - Grey out the settings the searchable path drops
+# PDFUtil.ocr.mode.changed.sh - Gray out the settings the searchable path drops
 #
 # "Embed a searchable text layer" is a different engine, not a variation: it
 # hands the document to PDFKit's own OCR, which covers the whole document and

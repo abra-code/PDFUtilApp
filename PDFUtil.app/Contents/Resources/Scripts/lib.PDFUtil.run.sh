@@ -276,14 +276,14 @@ unique_render_prefix() {
 # Command.json, so the logic lives here once.
 #
 # SAVE_AS_DIALOG has already asked for the output path ($OMC_DLG_SAVE_AS_PATH);
-# an empty value means the user cancelled.
+# an empty value means the user canceled.
 run_save_as() {
     local output_file="$OMC_DLG_SAVE_AS_PATH"
-    # Cancelled. Clear whatever start.batch left in the Summary, or its
+    # Canceled. Clear whatever start.batch left in the Summary, or its
     # "Checking the file list..." progress line would sit there implying the
     # run is still going.
     if [ -z "$output_file" ]; then
-        set_summary "Cancelled."
+        set_summary "Canceled."
         return 0
     fi
 

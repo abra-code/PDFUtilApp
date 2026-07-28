@@ -1710,7 +1710,7 @@
                   {
                     "type": "Text",
                     "properties": {
-                      "text": "Converts every page to shades of grey using the system Gray Tone filter. Nothing to configure.",
+                      "text": "Converts every page to shades of gray using the system Gray Tone filter. Nothing to configure.",
                       "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }

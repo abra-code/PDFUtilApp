@@ -296,7 +296,7 @@ TAB="$(printf '\t')"
 # there first. A truncated PDF, for instance, leads with "CoreGraphics PDF has
 # logged an error. Set environment variable CG_PDF_VERBOSE to learn more.",
 # which tells the user nothing about their file. Falls back to the first line
-# when pdfutil said nothing recognisable.
+# when pdfutil said nothing recognizable.
 #
 # Branch on the exit code, never on this being non-empty: pdfutil writes
 # harmless PDFKit log lines to stderr on permission-restricted files while
@@ -359,7 +359,7 @@ pdf_is_locked() {
 # Content, not extension: an extension check alone lets a renamed non-PDF
 # through to a confusing runtime error, which is exactly what this guards
 # against. `file --mime-type` reads the magic bytes, costs about a millisecond,
-# and - unlike parsing the document with `pdfutil info` - still recognises a
+# and - unlike parsing the document with `pdfutil info` - still recognizes a
 # password-protected PDF, which `info` rejects with exit 2 until it is given
 # the right password. Decrypt takes encrypted PDFs as its input, so a
 # classifier that called them "other" would lock the user out of the one
@@ -375,7 +375,7 @@ pdf_is_locked() {
 #   octet-stream / text-plain
 #                  `file` only matches %PDF- at byte 0, but the PDF spec allows
 #                  the header anywhere in the first 1024 bytes and PDFKit
-#                  honours that. A PDF carrying a BOM or a stray leading space
+#                  honors that. A PDF carrying a BOM or a stray leading space
 #                  reads perfectly (`pdfutil info` exits 0) yet is reported as
 #                  octet-stream. Falling back to a header scan keeps those
 #                  files in the list instead of silently dropping them.

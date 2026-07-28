@@ -1,5 +1,5 @@
 #!/bin/bash
-# PDFUtil.metadata.mode.changed.sh - Grey out the fields stripping would discard
+# PDFUtil.metadata.mode.changed.sh - Gray out the fields stripping would discard
 #
 # "Remove all metadata" clears every attribute, so a value typed into a field
 # alongside it is a value the user asked to set and delete in the same run.

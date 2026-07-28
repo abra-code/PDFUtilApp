@@ -63,7 +63,7 @@ contains "$out" "refusing to run pdfutil without an output path" \
 
 # --- mutually exclusive flags never co-occur -------------------------------
 # Each pair below is a combination pdfutil REFUSES (exit 1). The UI is supposed
-# to make them unreachable; the builder is the last line of defence, because a
+# to make them unreachable; the builder is the last line of defense, because a
 # control can hold a stale value from before a mode toggle was flipped.
 
 # Convert to Grayscale is its own operation, not a mode of Reduce. pdfutil

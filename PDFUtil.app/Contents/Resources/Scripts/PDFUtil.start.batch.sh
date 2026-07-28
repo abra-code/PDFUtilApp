@@ -360,7 +360,7 @@ resolve_page_term() {
             ;;
         *)
             if [ "$t" -ge 1 ] && [ "$t" -le "$2" ]; then
-                # Normalise to base 10. `[` compares decimally, but $(( ))
+                # Normalize to base 10. `[` compares decimally, but $(( ))
                 # reads a leading zero as OCTAL, so an accepted "008" would
                 # later abort the arithmetic ("value too great for base") and
                 # "010" would silently mean 8.
@@ -627,7 +627,7 @@ Right now ${risk_desc}.
 Continue anyway?"
     alert_rc=$?
     if [ "$alert_rc" -ne 0 ]; then
-        set_summary "Cancelled.
+        set_summary "Canceled.
 $(operation_label "$operation") would have discarded structure in ${risk_count} of ${file_count} file(s)."
         exit 0
     fi

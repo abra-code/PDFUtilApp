@@ -2,7 +2,7 @@
 # lib.PDFUtil.panels.sh - the settings panel switcher
 #
 # Which GroupBox is visible for the chosen operation, the per-section structure
-# notice text, and the mode toggles that grey out controls their mode cannot use.
+# notice text, and the mode toggles that gray out controls their mode cannot use.
 #
 # Sourced by: PDFUtil.init, .operation.changed, every *.mode.changed handler,
 # .render.format.changed, and the many-to-one runners (.run.merge, .run.assemble)
@@ -19,7 +19,7 @@ structure_notice() {
             echo "Redraws pages: annotations, links, the outline and form fields are lost."
             ;;
         gray)
-            echo "Redraws pages: annotations, links, the outline and form fields are lost. Colour is discarded, not recoverable."
+            echo "Redraws pages: annotations, links, the outline and form fields are lost. Color is discarded, not recoverable."
             ;;
         linearize)
             echo "Redraws pages: annotations, links, the outline and form fields are lost. QuickPDF linearizes without that loss."
@@ -186,7 +186,7 @@ apply_split_mode_state() {
 # Show the one row the chosen page-sizing mode actually uses.
 #
 # Hidden rather than disabled: a
-# greyed-out paper picker reads as something there is a way to switch on, and
+# grayed-out paper picker reads as something there is a way to switch on, and
 # here there is not - picking the other mode IS the switch. "From each image's
 # DPI" needs no row at all, so both are hidden.
 apply_assemble_mode_state() {
@@ -225,7 +225,7 @@ apply_metadata_mode_state() {
 # (measured - see the id block above). pdfutil refuses all four alongside
 # --searchable, so a live control here would offer a setting that cannot even be
 # sent; before that fix it was worse still, silently doing nothing while the
-# output read as evidence the setting had been honoured.
+# output read as evidence the setting had been honored.
 apply_ocr_mode_state() {
     local state=omc_enable
     [ "$OMC_ACTIONUI_VIEW_183_VALUE" = "true" ] && state=omc_disable

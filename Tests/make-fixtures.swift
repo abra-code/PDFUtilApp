@@ -185,7 +185,7 @@ do {
 }
 
 // photo.png - a standalone image. The file list is mixed-type as of Stage 8, so
-// classify_file has to recognise this as "image" and Build PDF from Images has
+// classify_file has to recognize this as "image" and Build PDF from Images has
 // to be able to consume it. Deliberately WIDER than reduce's 2400 px cap so a
 // document assembled from it is one the cap actually acts on.
 do {
@@ -196,7 +196,7 @@ do {
                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
         fatalError("cannot create bitmap context for photo.png")
     }
-    // A gradient rather than flat colour: a uniform image compresses to almost
+    // A gradient rather than flat color: a uniform image compresses to almost
     // nothing, which would make every size assertion about it meaningless.
     for band in 0..<60 {
         let t = CGFloat(band) / 60.0
@@ -220,11 +220,11 @@ do {
     try? Data("This is not a PDF and not an image.\n".utf8).write(to: out("notes.txt"))
 }
 
-// mislabelled.pdf - a text file wearing a .pdf extension. classify_file sniffs
+// mislabeled.pdf - a text file wearing a .pdf extension. classify_file sniffs
 // the header rather than trusting the name, and this is what proves it.
 do {
     try? Data("Still not a PDF, whatever the extension says.\n".utf8)
-        .write(to: out("mislabelled.pdf"))
+        .write(to: out("mislabeled.pdf"))
 }
 
 FileHandle.standardError.write(Data("fixtures written to \(outDir.path)\n".utf8))

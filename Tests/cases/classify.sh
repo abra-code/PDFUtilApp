@@ -13,7 +13,7 @@ expect_eq "other" "$(classify_file "$FIX/notes.txt")"   "a text file is neither"
 
 # The header decides, not the extension. A .pdf that is not one must not be
 # classified as a PDF, or the run fails inside pdfutil instead of in validation.
-expect_eq "other" "$(classify_file "$FIX/mislabelled.pdf")" "a text file named .pdf"
+expect_eq "other" "$(classify_file "$FIX/mislabeled.pdf")" "a text file named .pdf"
 
 # A path that does not exist classifies as something, rather than emitting
 # nothing and making the caller's arithmetic collapse.

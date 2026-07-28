@@ -52,10 +52,10 @@ run_pdfutil_merge() {
 
 output_file="$OMC_DLG_SAVE_AS_PATH"
 if [ -z "$output_file" ]; then
-    # Cancelled. Clear whatever start.batch left in the Summary, or its
+    # Canceled. Clear whatever start.batch left in the Summary, or its
     # "Checking the file list..." progress line would sit there implying the
     # run is still going.
-    set_summary "Cancelled."
+    set_summary "Canceled."
     exit 0
 fi
 

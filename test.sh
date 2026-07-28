@@ -79,7 +79,7 @@ if [ ! -d "$FIX" ]; then
 fi
 # Generated or pre-existing, the fixtures the cases name have to be there. A
 # missing one otherwise surfaces as a pile of unrelated assertion failures.
-for _f in text.pdf image.pdf outline.pdf form.pdf locked.pdf photo.png notes.txt mislabelled.pdf; do
+for _f in text.pdf image.pdf outline.pdf form.pdf locked.pdf photo.png notes.txt mislabeled.pdf; do
     [ -s "$FIX/$_f" ] || die "fixture $FIX/$_f is missing or empty - delete $FIX and re-run to regenerate"
 done
 
