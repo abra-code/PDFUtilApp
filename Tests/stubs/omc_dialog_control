@@ -1,0 +1,12 @@
+#!/bin/sh
+# Stand-in for OMC's dialog tool: record the call instead of performing it.
+# Usage mirrors the real tool: <window-uuid> <element-id> [verb] [value...]
+#
+# The Summary field (id 12) is also written to its own file, because most
+# assertions about "what did the app tell the user" are about that one element
+# and grepping a whole call log for it is noise.
+shift
+id="$1"; shift
+[ "$id" = "12" ] && printf '%s' "$*" > "$OMC_TEST_LOG/summary.txt"
+printf '%s %s\n' "$id" "$*" >> "$OMC_TEST_LOG/dialog.log"
+exit 0

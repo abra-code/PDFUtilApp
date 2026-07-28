@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stand-in for OMC's key-value store. The app does not depend on values surviving
+# between handlers in any tested path, so this only has to exist and succeed.
+exit 0
