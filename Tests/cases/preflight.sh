@@ -76,7 +76,8 @@ contains "$(structure_notice linearize)" "QuickPDF" \
 contains "$(structure_notice pdfa)" "veraPDF" \
     || fail "the PDF/A notice should say conformance is unverified"
 
-# Read-only Inspect writes nothing, so its notice says that rather than warning
-# about structure it cannot damage.
-contains "$(structure_notice inspect)" "Read-only" \
-    || fail "the inspect notice should say it is read-only"
+# The read-only tier is no longer a batch operation, so it must have no panel,
+# no notice and no builder arm left behind.
+expect_eq "" "$(structure_notice inspect)" "inspect has no notice any more"
+expect_eq "$GROUP_PLACEHOLDER_ID" "$(panel_for_operation inspect)" \
+    "inspect has no panel any more"

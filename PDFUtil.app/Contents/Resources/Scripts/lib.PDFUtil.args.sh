@@ -241,19 +241,6 @@ assemble_page_size() {
     esac
 }
 
-# Echo the Inspect sub-mode, defaulting to info.
-#
-# Whitelisted for the same reason as the other pickers: a stale or transitional
-# value must not choose a verb. Unlike those, an unrecognised value here cannot
-# be a usage error - it would just pick the wrong report - so the default is the
-# harmless one.
-inspect_mode() {
-    case "$OMC_ACTIONUI_VIEW_222_VALUE" in
-        outline | forms | search) echo "$OMC_ACTIONUI_VIEW_222_VALUE" ;;
-        *) echo "info" ;;
-    esac
-}
-
 # Append `--set KEY=VALUE` for a metadata field the user filled in.
 #
 # A BLANK FIELD LEAVES THAT ATTRIBUTE ALONE - it does not delete it. The plan
@@ -548,33 +535,6 @@ build_pdfutil_args() {
                 *)
                     PDFUTIL_ARGS+=(--page-size "$(assemble_page_size)")
                     ;;
-            esac
-            ;;
-
-        inspect)
-            # The only read-only operation: it writes nothing and is never given
-            # -o, so its runner does not go through run_pdfutil. "report" is the
-            # output kind the router uses to send it to an output window instead
-            # of a destination prompt.
-            PDFUTIL_OUTPUT_KIND="report"
-            case "$(inspect_mode)" in
-                outline) PDFUTIL_VERB="outline" ;;
-                forms)
-                    PDFUTIL_VERB="forms"
-                    PDFUTIL_ARGS+=(--list)
-                    ;;
-                search)
-                    PDFUTIL_VERB="search"
-                    # `search <in.pdf> <query>` takes the query AFTER the input,
-                    # so it goes in TRAILING rather than ARGS. Position alone
-                    # does not protect it: pdfutil's option scanner is not
-                    # positional, so a query like "-1" or "--count" is still read
-                    # as a flag and the run fails with a message about the
-                    # document. "--" ends option scanning, so the query reaches
-                    # the verb as a query whatever it starts with.
-                    PDFUTIL_TRAILING+=(-- "$(trim_spaces "$OMC_ACTIONUI_VIEW_224_VALUE")")
-                    ;;
-                *) PDFUTIL_VERB="info" ;;
             esac
             ;;
 

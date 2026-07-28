@@ -16,7 +16,7 @@ reset_controls
 # Every operation the picker offers, in picker order.
 ALL_OPS="reduce linearize pdfa extract delete rotate crop split merge \
          watermark flatten metadata encrypt decrypt render text ocr \
-         frompages inspect"
+         frompages"
 
 # --- every operation builds, and none invents its own -o or --force ---------
 for op in $ALL_OPS; do
@@ -29,7 +29,6 @@ for op in $ALL_OPS; do
         encrypt) OMC_ACTIONUI_VIEW_110_VALUE="pw"; OMC_ACTIONUI_VIEW_111_VALUE="pw" ;;
         decrypt) OMC_ACTIONUI_VIEW_122_VALUE="pw" ;;
         metadata) OMC_ACTIONUI_VIEW_190_VALUE="A Title" ;;
-        inspect) OMC_ACTIONUI_VIEW_222_VALUE="info" ;;
     esac
     if ! build_pdfutil_args "$op" >/dev/null 2>&1; then
         fail "build_pdfutil_args refused a configured '$op'"

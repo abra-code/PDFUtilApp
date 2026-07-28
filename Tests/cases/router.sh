@@ -18,7 +18,6 @@ check_kind() {
         encrypt) OMC_ACTIONUI_VIEW_110_VALUE="pw"; OMC_ACTIONUI_VIEW_111_VALUE="pw" ;;
         decrypt) OMC_ACTIONUI_VIEW_122_VALUE="pw" ;;
         metadata) OMC_ACTIONUI_VIEW_190_VALUE="T" ;;
-        inspect) OMC_ACTIONUI_VIEW_222_VALUE="info" ;;
     esac
     build_pdfutil_args "$1" >/dev/null 2>&1
     expect_eq "$2" "$PDFUTIL_OUTPUT_KIND" "output kind for $1"
@@ -31,7 +30,6 @@ check_kind render images
 check_kind text   text
 check_kind merge  merged
 check_kind frompages assembled
-check_kind inspect   report
 check_kind split     parts
 
 # OCR changes its output kind with the mode, which is the whole reason the
@@ -45,7 +43,7 @@ expect_eq "pdf" "$PDFUTIL_OUTPUT_KIND" "searchable OCR produces a PDF, not text"
 # Each kind must be one the routing case in start.batch actually handles. A kind
 # with no arm falls through and the Save button does nothing at all.
 router="$(awk '/^case "\$PDFUTIL_OUTPUT_KIND" in/,/^esac/' "$SCRIPTS/PDFUtil.start.batch.sh")"
-for kind in pdf text images merged assembled report parts; do
+for kind in pdf text images merged assembled parts; do
     contains "$router" "$kind)" || fail "start.batch has no routing arm for output kind '$kind'"
 done
 
@@ -60,7 +58,7 @@ fi
 # disagree about what exists.
 expect_eq "$GROUP_PLACEHOLDER_ID" "$(panel_for_operation nosuchoperation)" \
     "an unknown operation shows the placeholder panel"
-for op in reduce linearize pdfa inspect frompages metadata; do
+for op in reduce linearize pdfa frompages metadata; do
     if [ "$(panel_for_operation "$op")" = "$GROUP_PLACEHOLDER_ID" ]; then
         fail "$op is built but still shows the 'not available yet' placeholder"
     fi

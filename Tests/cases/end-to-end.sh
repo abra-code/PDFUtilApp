@@ -127,21 +127,51 @@ build_pdfutil_args split >/dev/null 2>&1
 count=$(ls "$TMP"/e2e-part*.pdf 2>/dev/null | wc -l | tr -d ' ')
 [ "$count" -ge 2 ] || fail "split wrote $count parts from a 5-page document"
 
-# --- the read-only tier writes nothing --------------------------------------
-# Inspect is the one operation with no destination, so the guarantee worth
-# asserting is the negative one: the inputs are untouched.
-before_sum="$(shasum "$FIX/text.pdf" | awk '{print $1}')"
-for mode in info outline forms search; do
-    reset_controls
-    OMC_ACTIONUI_VIEW_222_VALUE="$mode"
-    [ "$mode" = "search" ] && OMC_ACTIONUI_VIEW_224_VALUE="needle"
-    build_pdfutil_args inspect >/dev/null 2>&1
-    joined="${PDFUTIL_ARGS[*]}"
-    if contains " $joined " " -o "; then
-        fail "inspect mode '$mode' would write a file: $joined"
-    fi
-    "$PDFUTIL" "$PDFUTIL_VERB" "${PDFUTIL_ARGS[@]}" "$FIX/text.pdf" \
-        "${PDFUTIL_TRAILING[@]}" >/dev/null 2>&1
-done
-after_sum="$(shasum "$FIX/text.pdf" | awk '{print $1}')"
-expect_eq "$before_sum" "$after_sum" "Inspect must not modify its input"
+# --- the (i) button: inspection of the SELECTED file ------------------------
+#
+# The read-only reports used to be a batch operation with a sub-picker. They are
+# not any more: inspection answers a question about one document you are looking
+# at, not something queued across a list and read back as a log. What survives
+# lives in the info handler, which OMC runs in an output window, so its stdout
+# IS the result and can be asserted directly.
+run_info() {
+    OMC_APP_BUNDLE_PATH="$APP" \
+    OMC_ACTIONUI_TABLE_10_COLUMN_3_VALUE="$1" \
+        /bin/sh "$SCRIPTS/PDFUtil.info.sh" 2>&1
+}
+
+out="$(run_info "$FIX/text.pdf")"
+contains "$out" "Size:"       || fail "info gave no file size"
+contains "$out" "Type: pdf"   || fail "info did not classify the file"
+contains "$out" "pages: 5"    || fail "info did not report the page count"
+
+# The outline is shown when there is one...
+out="$(run_info "$FIX/outline.pdf")"
+contains "$out" "--- Outline ---" || fail "info did not show the outline of a document that has one"
+contains "$out" "Chapter 1"       || fail "info showed an outline heading but no entries"
+
+# ...and stays silent when there is not. `pdfutil outline` prints "no outline"
+# and exits 0 for those, so an emptiness test alone would print a heading over
+# nothing - which is what it did until this was checked against a real file.
+out="$(run_info "$FIX/text.pdf")"
+if contains "$out" "--- Outline ---"; then
+    fail "info printed an outline heading for a document with no outline"
+fi
+if contains "$out" "no outline"; then
+    fail "info leaked pdfutil's 'no outline' placeholder into the report"
+fi
+
+# Images and non-PDFs are handled rather than run through pdfutil.
+out="$(run_info "$FIX/photo.png")"
+contains "$out" "Type: image" || fail "info did not classify an image"
+contains "$out" "pixelWidth"  || fail "info gave no image dimensions"
+
+out="$(run_info "$FIX/notes.txt")"
+contains "$out" "Type: other" || fail "info did not classify a non-PDF"
+
+out="$(run_info "$FIX/does-not-exist.pdf")"
+contains "$out" "does not exist" || fail "info did not report a missing file"
+
+# A locked PDF explains itself rather than reporting a bare failure.
+out="$(run_info "$FIX/locked.pdf")"
+contains "$out" "password-protected" || fail "info did not explain a locked PDF"

@@ -173,15 +173,6 @@ pdfutil treats an empty password as a usage error rather than as a blank passwor
             fi
             ;;
         watermark) watermark_settings_problem ;;
-        inspect)
-            # Only Search takes a value; the other three reports need nothing.
-            if [ "$(inspect_mode)" = "search" ] \
-               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_224_VALUE")" ]; then
-                echo "Enter the text to search for.
-
-pdfutil treats an empty query as a usage error rather than as a match-everything search."
-            fi
-            ;;
         metadata)
             # A run with nothing set and nothing stripped would rewrite every
             # file to change nothing - and not even nothing, since PDFKit resets
@@ -663,24 +654,6 @@ case "$PDFUTIL_OUTPUT_KIND" in
         # Split turns one input into a numbered series, so there is no single
         # name a Save panel could confirm however short the list is.
         "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.batch"
-        ;;
-
-    report)
-        # Read-only: no destination prompt at all. The runner declares
-        # exe_script_file_with_output_window, so its stdout IS the result, and
-        # there is nothing to name because nothing is written.
-        #
-        # The Summary is settled HERE rather than left to the runner. A list of
-        # more than two files has already had "Checking the file list..." written
-        # into it above, and whether a command running under an output window can
-        # still reach the main window with omc_dialog_control has not been
-        # confirmed on a live run. If it cannot, set_summary there is a silent
-        # no-op and that progress line stays up for good. Writing a terminal
-        # sentence before chaining costs one call and makes the unverified path
-        # fail to something accurate instead of something stuck.
-        set_summary "Operation: $(operation_label "$operation")
-Inspecting ${file_count} file(s); the report opens in its own window."
-        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.inspect"
         ;;
 
     assembled)

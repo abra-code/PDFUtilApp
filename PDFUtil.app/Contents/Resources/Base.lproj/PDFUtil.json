@@ -167,9 +167,7 @@
                 { "title": "Extract Text", "tag": "text" },
                 { "title": "OCR", "tag": "ocr" },
                 { "section": "Create" },
-                { "title": "Build PDF from Images", "tag": "frompages" },
-                { "section": "Inspect" },
-                { "title": "Document Info / Outline / Fields / Search", "tag": "inspect" }
+                { "title": "Build PDF from Images", "tag": "frompages" }
               ],
               "actionID": "PDFUtil.operation.changed"
             }
@@ -1448,70 +1446,6 @@
                   {
                     "type": "Text",
                     "id": 312,
-                    "properties": {
-                      "text": "",
-                      "foregroundStyle": "orange",
-                      "font": "caption",
-                      "frame": { "maxWidth": 99999, "alignment": "leading" }
-                    }
-                  },
-                  {
-                    "type": "Divider",
-                    "properties": { "opacity": 0, "frame": { "height": 0 } }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "GroupBox",
-            "id": 216,
-            "properties": {
-              "title": "Inspect",
-              "hidden": true,
-              "padding": "default",
-              "frame": { "minWidth": 440, "maxWidth": 99999 }
-            },
-            "children": [
-              {
-                "type": "VStack",
-                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
-                "children": [
-                  {
-                    "type": "Picker",
-                    "id": 222,
-                    "properties": {
-                      "title": "Report",
-                      "pickerStyle": "menu",
-                      "options": [
-                        { "title": "Document Info", "tag": "info" },
-                        { "title": "Outline", "tag": "outline" },
-                        { "title": "Form Fields", "tag": "forms" },
-                        { "title": "Search", "tag": "search" }
-                      ],
-                      "actionID": "PDFUtil.inspect.mode.changed"
-                    }
-                  },
-                  {
-                    "type": "HStack",
-                    "id": 223,
-                    "properties": { "spacing": 8, "hidden": true },
-                    "children": [
-                      { "type": "Text", "properties": { "text": "Find:" } },
-                      {
-                        "type": "TextField",
-                        "id": 224,
-                        "properties": {
-                          "text": "",
-                          "prompt": "text to search for",
-                          "frame": { "maxWidth": 99999 }
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "type": "Text",
-                    "id": 316,
                     "properties": {
                       "text": "",
                       "foregroundStyle": "orange",
