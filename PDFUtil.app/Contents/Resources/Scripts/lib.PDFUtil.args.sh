@@ -5,7 +5,7 @@
 # with the clamps and whitelists that keep a stale or hand-typed control value
 # from reaching the binary.
 #
-# Sourced by: the five PDFUtil.run.* handlers and PDFUtil.start.batch
+# Sourced by: every PDFUtil.run.* handler and PDFUtil.start.batch
 # Requires lib.PDFUtil.sh (tool paths, control IDs, primitives) to be
 # sourced first; every handler that needs this one sources both, in order.
 #
@@ -203,6 +203,48 @@ add_ocr_langs() {
     return 0
 }
 
+# Echo a page-scale DPI for frompages, defaulting to 150.
+#
+# Not clamp_dpi: that allows 1..2400, which is the right range for RASTERIZING
+# but absurd for the inverse direction, where the DPI decides how big a page the
+# image becomes. The page is the image's pixel size divided by the DPI, so a low
+# value scales without bound and pdfutil clamps nothing of its own - measured,
+# --dpi 1 turns a 200 px wide image into a 14400 pt page and a 612 px wide one
+# into a 44064 pt page, and both exit 0. 36 to 1200 spans a half-size poster to a
+# fine-detail scan; outside that the user has not chosen a page size, they have
+# made a document nobody can use. 0 is not a scale at all, so it takes the
+# default rather than the floor - flooring it to 36 would silently produce the
+# largest page in the range from the value that most looks like "no opinion".
+# Arguments: value default
+clamp_page_dpi() {
+    local d="$(trim_spaces "$1")" def="$2"
+    case "$d" in
+        '' | *[!0-9]*) echo "$def"; return ;;
+    esac
+    if [ ${#d} -gt 9 ]; then echo "$def"; return ; fi
+    d=$((10#$d))
+    [ "$d" -eq 0 ] && { echo "$def"; return ; }
+    [ "$d" -lt 36 ] && d=36
+    [ "$d" -gt 1200 ] && d=1200
+    echo "$d"
+}
+
+# Append `--set KEY=VALUE` for a metadata field the user filled in.
+#
+# A BLANK FIELD LEAVES THAT ATTRIBUTE ALONE - it does not delete it. The plan
+# asked for `--delete KEY` on a field "the user explicitly cleared", but the
+# panel has no way to know what was there to begin with: the list can hold many
+# files with different metadata, and nothing pre-populates these fields from any
+# of them. "Cleared" and "never filled in" are therefore the same input, so
+# deleting on blank would wipe an author or title the user never saw. Removing
+# everything is what the strip toggle is for; per-field deletion needs
+# per-file prefill, which belongs with a single-file inspector, not here.
+add_metadata_set() {
+    local key="$1" value="$(trim_spaces "$2")"
+    [ -z "$value" ] && return 0
+    PDFUTIL_ARGS+=(--set "${key}=${value}")
+}
+
 # Echo the page box to write, defaulting to crop (pdfutil's own default).
 crop_box() {
     case "$OMC_ACTIONUI_VIEW_187_VALUE" in
@@ -274,7 +316,7 @@ encrypt_allow_list() {
 #   PDFUTIL_VERB        the subcommand
 #   PDFUTIL_ARGS        flags placed between the verb and the output
 #   PDFUTIL_TRAILING    args that must follow the input (rare)
-#   PDFUTIL_OUTPUT_KIND pdf | text | images | prefix | none - drives routing
+#   PDFUTIL_OUTPUT_KIND pdf | text | images | parts | merged | assembled | report - drives routing
 #   PDFUTIL_STDIN_PW    password to feed on stdin, if any
 #
 # Note what is deliberately NOT set here: the output path and --force. Both are
@@ -453,6 +495,51 @@ build_pdfutil_args() {
             # N inputs, 1 output: run_pdfutil takes a single input, so merge has
             # its own call path in run_pdfutil_merge.
             PDFUTIL_OUTPUT_KIND="merged"
+            ;;
+
+        frompages)
+            PDFUTIL_VERB="frompages"
+            # Like merge, N inputs collapse to 1 output, so it takes the same
+            # many-to-one runner path rather than the per-file loop.
+            PDFUTIL_OUTPUT_KIND="assembled"
+            # --dpi overrides the DPI recorded in the image, which decides the
+            # page size. Only sent when the user typed something: pdfutil's
+            # default is to honour each image's own DPI, and there is no value
+            # here that means "leave it alone".
+            local fp_dpi="$(trim_spaces "$OMC_ACTIONUI_VIEW_220_VALUE")"
+            if [ -n "$fp_dpi" ]; then
+                PDFUTIL_ARGS+=(--dpi "$(clamp_page_dpi "$fp_dpi" 150)")
+            fi
+            ;;
+
+        metadata)
+            PDFUTIL_VERB="metadata"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            if [ "$OMC_ACTIONUI_VIEW_195_VALUE" = "true" ]; then
+                # --strip clears everything. pdfutil applies it as a starting
+                # condition rather than as an ordered step, so --strip --set and
+                # --set --strip both keep the set value - the pair is well
+                # defined, just not what the checkbox promises. "Remove all
+                # metadata" that quietly puts one attribute back is a lie, so the
+                # panel disables the fields and the builder sends the flag alone.
+                PDFUTIL_ARGS+=(--strip)
+            else
+                add_metadata_set title "$OMC_ACTIONUI_VIEW_190_VALUE"
+                add_metadata_set author "$OMC_ACTIONUI_VIEW_191_VALUE"
+                add_metadata_set subject "$OMC_ACTIONUI_VIEW_192_VALUE"
+                add_metadata_set keywords "$OMC_ACTIONUI_VIEW_193_VALUE"
+                add_metadata_set creator "$OMC_ACTIONUI_VIEW_194_VALUE"
+                # With no --set and no --strip, `metadata` is its own READ verb,
+                # and -o there names a file to write the LISTING to - so the
+                # runner would put an ASCII attribute dump inside the .pdf the
+                # user asked for, exit 0, and report success. start.batch's
+                # settings check already refuses this, but that guard lives in
+                # another file; a builder arm should not depend on a distant
+                # caller to keep it from emitting something destructive.
+                if [ ${#PDFUTIL_ARGS[@]} -eq 0 ]; then
+                    return 1
+                fi
+            fi
             ;;
 
         ocr)

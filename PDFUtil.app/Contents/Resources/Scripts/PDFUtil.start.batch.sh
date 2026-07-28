@@ -53,12 +53,18 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
 #
 # linearize and pdfa are listed although their panels arrive in a later stage:
 # the measurement is done and the table is the thing that must not go stale.
-# frompages joins them when it lands, but only for PDF inputs.
+# frompages is in the set as of Stage 8, but only its PDF inputs are at risk.
 #
 # Arguments: operation tag
 operation_redraws() {
     case "$1" in
         reduce | linearize | pdfa)
+            return 0
+            ;;
+        frompages)
+            # Only its PDF inputs are at risk - images have no structure to
+            # lose - but the loop below only ever asks this about PDFs, so the
+            # generic pre-flight covers it without a special case.
             return 0
             ;;
         watermark)
@@ -72,6 +78,58 @@ operation_redraws() {
             ;;
     esac
     return 1
+}
+
+# Echo why the list's file types do not suit the operation, or "" when they do.
+#
+# Build PDF from Images is the only operation that reads pictures; every other
+# one reads PDFs. A file that is neither (classify_file's "other") is wrong for
+# both, and is called out separately because "not a PDF" and "not an image"
+# would each be a misleading description of, say, a .docx.
+#
+# Arguments: operation, total, pdf count, image count, other count, first other name
+input_type_problem() {
+    local op="$1" total="$2" pdfs="$3" images="$4" others="$5" other_name="$6"
+
+    if [ "$op" = "frompages" ]; then
+        if [ "$others" -gt 0 ]; then
+            local other_verb="are"
+            [ "$others" -eq 1 ] && other_verb="is"
+            echo "Build PDF from Images cannot read \"${other_name}\"; ${others} of ${total} items ${other_verb} neither images nor PDFs.
+
+Remove them from the list and try again."
+            return
+        fi
+        if [ "$images" -eq 0 ]; then
+            # PDFs alone are legal to pdfutil, but that is Merge's job and it
+            # keeps the structure this operation would redraw away.
+            echo "Build PDF from Images needs at least one image in the list.
+
+To combine PDFs into one document, use Merge instead - it keeps annotations, links, the outline and form fields."
+            return
+        fi
+        return
+    fi
+
+    local wrong=$((images + others))
+    [ "$wrong" -eq 0 ] && return
+
+    # "1 of 3 items are images" reads as a typo, and these messages are the
+    # user's only explanation of why the run stopped.
+    local what img_verb="are" oth_verb="are"
+    [ "$images" -eq 1 ] && img_verb="is"
+    [ "$others" -eq 1 ] && oth_verb="is"
+    if [ "$others" -eq 0 ]; then
+        what="${images} of ${total} items in the list ${img_verb} images"
+    elif [ "$images" -eq 0 ]; then
+        what="${others} of ${total} items in the list ${oth_verb} not PDFs, starting with \"${other_name}\""
+    else
+        what="${images} of ${total} items in the list ${img_verb} images and ${others} more ${oth_verb} neither PDFs nor images"
+    fi
+
+    echo "$(operation_label "$op") needs PDF files; ${what}.
+
+Remove them from the list and try again."
 }
 
 
@@ -115,6 +173,21 @@ pdfutil treats an empty password as a usage error rather than as a blank passwor
             fi
             ;;
         watermark) watermark_settings_problem ;;
+        metadata)
+            # A run with nothing set and nothing stripped would rewrite every
+            # file to change nothing - and not even nothing, since PDFKit resets
+            # Producer and both dates on save. Refusing is the honest answer.
+            if [ "$OMC_ACTIONUI_VIEW_195_VALUE" != "true" ] \
+               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_190_VALUE")" ] \
+               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_191_VALUE")" ] \
+               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_192_VALUE")" ] \
+               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_193_VALUE")" ] \
+               && [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_194_VALUE")" ]; then
+                echo "Fill in at least one attribute, or switch on \"Remove all metadata\".
+
+A blank field leaves that attribute as it is; it does not clear it."
+            fi
+            ;;
     esac
 }
 
@@ -379,6 +452,27 @@ if [ -z "$all_paths" ]; then
     exit 0
 fi
 
+# Settings the run cannot proceed with - mismatched password confirmations, an
+# empty page range, a malformed crop rectangle. Checked before the per-file
+# pre-flight because it is instant and needs no disk access, and before any
+# destination dialog because the alternative is asking the user to name an
+# output file for a run that was never going to start.
+#
+# It also has to come before the not-implemented check below, and that ordering
+# is load-bearing rather than incidental: build_pdfutil_args refuses a settings
+# combination it cannot express (Edit Metadata with every field blank), and that
+# refusal is indistinguishable from "this operation does not exist yet". Asking
+# it first would answer an empty metadata form with "Edit Metadata is not
+# available yet. ... use QuickPDF if it offers this one" - pointing the user at
+# another app for a feature that is right there and merely needs a value.
+settings_issue="$(settings_problem "$operation")"
+if [ -n "$settings_issue" ]; then
+    "$alert_tool" --level caution --title "PDFUtil" "$settings_issue"
+    set_summary "$(operation_label "$operation") did not run.
+${settings_issue}"
+    exit 0
+fi
+
 # build_pdfutil_args is what knows which operations exist; asking it keeps the
 # router from carrying a second list that could drift out of step.
 if ! build_pdfutil_args "$operation"; then
@@ -392,19 +486,6 @@ Pick another operation, or use QuickPDF if it offers this one."
     exit 0
 fi
 
-# Settings the run cannot proceed with - mismatched password confirmations, an
-# empty page range, a malformed crop rectangle. Checked before the per-file
-# pre-flight because it is instant and needs no disk access, and before any
-# destination dialog because the alternative is asking the user to name an
-# output file for a run that was never going to start.
-settings_issue="$(settings_problem "$operation")"
-if [ -n "$settings_issue" ]; then
-    "$alert_tool" --level caution --title "PDFUtil" "$settings_issue"
-    set_summary "$(operation_label "$operation") did not run.
-${settings_issue}"
-    exit 0
-fi
-
 # The pre-flight below spawns `file` and `pdfutil info` per entry, about 100 ms
 # a file. That is invisible for a handful and a silent several-second pause for
 # a big list, so say what is happening first.
@@ -413,7 +494,10 @@ if [ "$(printf '%s\n' "$all_paths" | /usr/bin/grep -c .)" -gt 2 ]; then
 fi
 
 file_count=0
-non_pdf_count=0
+pdf_count=0
+image_count=0
+other_count=0
+other_name=""
 locked_count=0
 locked_name=""
 first_file=""
@@ -432,23 +516,37 @@ while IFS= read -r file_path; do
     [ -z "$file_path" ] && continue
     file_count=$((file_count + 1))
     [ -z "$first_file" ] && first_file="$file_path"
-    if [ "$(classify_file "$file_path")" != "pdf" ]; then
-        non_pdf_count=$((non_pdf_count + 1))
-    elif [ "$operation" != "decrypt" ] && pdf_is_locked "$file_path"; then
-        # Remove Password is exempt: a locked file is precisely its input, and
-        # the test is skipped rather than counted-and-ignored so it does not pay
-        # for an `info` call per file it already knows the answer for.
-        locked_count=$((locked_count + 1))
-        [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
-    elif [ "$redraws" = "1" ]; then
-        # Free: the guard above just ran `info` on this file and cached it, so
-        # this reads that output rather than parsing the document again.
-        file_risk="$(pdf_structure_at_risk "$file_path")"
-        if [ -n "$file_risk" ]; then
-            risk_count=$((risk_count + 1))
-            if [ -z "$risk_name" ]; then
-                risk_name="$(/usr/bin/basename "$file_path")"
-                risk_kind="$file_risk"
+    # Counted by type rather than pdf/not-pdf: with images now legal inputs the
+    # message has to name what the wrong items actually are, and "3 items are
+    # images" is actionable in a way "3 items are not PDFs" is not.
+    file_kind="$(classify_file "$file_path")"
+    case "$file_kind" in
+        pdf)   pdf_count=$((pdf_count + 1)) ;;
+        image) image_count=$((image_count + 1)) ;;
+        *)
+            other_count=$((other_count + 1))
+            [ -z "$other_name" ] && other_name="$(/usr/bin/basename "$file_path")"
+            ;;
+    esac
+
+    # The password and structure checks only mean anything for a PDF.
+    if [ "$file_kind" = "pdf" ]; then
+        if [ "$operation" != "decrypt" ] && pdf_is_locked "$file_path"; then
+            # Remove Password is exempt: a locked file is precisely its input,
+            # and the test is skipped rather than counted-and-ignored so it does
+            # not pay for an `info` call per file it already knows the answer for.
+            locked_count=$((locked_count + 1))
+            [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
+        elif [ "$redraws" = "1" ]; then
+            # Free: the guard above just ran `info` on this file and cached it,
+            # so this reads that output rather than parsing the document again.
+            file_risk="$(pdf_structure_at_risk "$file_path")"
+            if [ -n "$file_risk" ]; then
+                risk_count=$((risk_count + 1))
+                if [ -z "$risk_name" ]; then
+                    risk_name="$(/usr/bin/basename "$file_path")"
+                    risk_kind="$file_risk"
+                fi
             fi
         fi
     fi
@@ -460,17 +558,16 @@ if [ "$file_count" -eq 0 ]; then
     exit 0
 fi
 
-# Every operation built so far reads a PDF. Say which items are wrong and how
-# many, rather than letting pdfutil fail per file with a message about a format
-# the user never chose. Build PDF from Images (Stage 8) is the one operation
-# that will need the opposite test.
-if [ "$non_pdf_count" -gt 0 ]; then
-    set_summary "$(operation_label "$operation") needs PDF files.
-${non_pdf_count} of ${file_count} items in the list are not PDFs."
-    "$alert_tool" --level caution --title "PDFUtil" \
-        "$(operation_label "$operation") needs PDF files; ${non_pdf_count} of ${file_count} items in the list are not PDFs.
-
-Remove them from the list and try again."
+# The list can hold PDFs and images, so which one is wrong depends on the
+# operation: Build PDF from Images is the only one that reads pictures, and
+# every other one reads PDFs. Naming the mismatch here beats letting pdfutil
+# fail once per file with a message about a format the user never chose.
+input_issue="$(input_type_problem "$operation" "$file_count" "$pdf_count" \
+                                  "$image_count" "$other_count" "$other_name")"
+if [ -n "$input_issue" ]; then
+    set_summary "$(operation_label "$operation") did not run.
+${input_issue}"
+    "$alert_tool" --level caution --title "PDFUtil" "${input_issue}"
     exit 0
 fi
 
@@ -557,6 +654,14 @@ case "$PDFUTIL_OUTPUT_KIND" in
         # Split turns one input into a numbered series, so there is no single
         # name a Save panel could confirm however short the list is.
         "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.batch"
+        ;;
+
+    assembled)
+        # The other many-to-one shape: images in, one PDF out. Unlike merge a
+        # single input is legal - one photo is a one-page PDF - so there is no
+        # minimum here beyond the "at least one image" the type check above
+        # already enforced.
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.run.assemble"
         ;;
 
     merged)

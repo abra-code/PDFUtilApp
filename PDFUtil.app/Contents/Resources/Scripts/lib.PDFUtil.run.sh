@@ -5,7 +5,8 @@
 # -o (without it pdfutil edits the input IN PLACE) and --force (the runners
 # stage through mktemp, which pre-creates a 0-byte file).
 #
-# Sourced by: the five PDFUtil.run.* handlers
+# Sourced by: the PDFUtil.run.* handlers that write a file (not the read-only
+# ones, which never take -o and so need none of this)
 # Requires lib.PDFUtil.sh (tool paths, control IDs, primitives) to be
 # sourced first; every handler that needs this one sources both, in order.
 #
@@ -134,7 +135,10 @@ ensure_output_extension() {
     local path="$1"
 
     case "$PDFUTIL_OUTPUT_KIND" in
-        pdf)
+        # merged and assembled are PDFs too. Omitting them here wrote a valid
+        # PDF with no suffix whenever the user typed over the Save panel's
+        # default name - the default carries .pdf, so only a renamed save hit it.
+        pdf | merged | assembled)
             case "$path" in
                 *.pdf | *.PDF) echo "$path" ;;
                 *) unique_path "${path}.pdf" ;;
@@ -242,7 +246,13 @@ unique_render_prefix() {
 # harmless PDFKit log lines to stderr on permission-restricted files while
 # still exiting 0.
 first_error_line() {
-    printf '%s' "$1" | /usr/bin/head -1 | /usr/bin/sed 's/^pdfutil: //'
+    local own
+    own="$(printf '%s' "$1" | /usr/bin/grep -m1 '^pdfutil[: ]')"
+    if [ -n "$own" ]; then
+        printf '%s' "$own" | /usr/bin/sed 's/^pdfutil[a-z. ]*: //'
+        return
+    fi
+    printf '%s' "$1" | /usr/bin/head -1
 }
 
 # Shared body of the three Save As runners - PDFUtil.run.single (PDF),

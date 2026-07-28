@@ -4,7 +4,8 @@
 # Which GroupBox is visible for the chosen operation, the per-section structure
 # notice text, and the mode toggles that grey out controls their mode cannot use.
 #
-# Sourced by: PDFUtil.init, .operation.changed, the five *.mode.changed handlers, .render.format.changed, .run.merge
+# Sourced by: PDFUtil.init, .operation.changed, every *.mode.changed handler,
+# .render.format.changed, and the many-to-one runners (.run.merge, .run.assemble)
 # Requires lib.PDFUtil.sh (tool paths, control IDs, primitives) to be
 # sourced first; every handler that needs this one sources both, in order.
 #
@@ -56,6 +57,12 @@ structure_notice() {
         flatten)
             echo "Removes interactivity deliberately: filled-in values and annotation appearances are painted into the page and the fields themselves are gone. The outline survives; nothing can be edited afterwards."
             ;;
+        frompages)
+            echo "The one operation whose inputs are images rather than PDFs; pages come out in list order. An animated GIF or multi-page TIFF contributes one page per frame. A PDF in the list is redrawn, losing annotations, links, the outline and form fields - use Merge to combine PDFs instead."
+            ;;
+        metadata)
+            echo "Edits the Info dictionary and keeps the document's structure. PDFKit's writer resets Producer and both dates on every save whatever is set here, so those three are not offered as fields."
+            ;;
         *)
             echo ""
             ;;
@@ -80,6 +87,8 @@ notice_id_for_operation() {
         ocr)       echo ${NOTICE_OCR_ID} ;;
         watermark) echo ${NOTICE_WATERMARK_ID} ;;
         flatten)   echo ${NOTICE_FLATTEN_ID} ;;
+        frompages) echo ${NOTICE_FROMPAGES_ID} ;;
+        metadata)  echo ${NOTICE_METADATA_ID} ;;
         *)       echo "" ;;
     esac
 }
@@ -102,6 +111,8 @@ panel_for_operation() {
         ocr)       echo ${GROUP_OCR_ID} ;;
         watermark) echo ${GROUP_WATERMARK_ID} ;;
         flatten)   echo ${GROUP_FLATTEN_ID} ;;
+        frompages) echo ${GROUP_FROMPAGES_ID} ;;
+        metadata)  echo ${GROUP_METADATA_ID} ;;
         *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }
@@ -174,6 +185,25 @@ apply_reduce_mode_state() {
     "$dialog_tool" "$window_uuid" ${RED_DPI_ID} "$state"
     "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_ON_ID} "$state"
     "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_PX_ID} "$state"
+}
+
+# Switch off the metadata fields that stripping makes meaningless.
+#
+# --strip removes every attribute, so a --set alongside it would be a value the
+# user typed and then asked to have deleted. pdfutil accepts the pair and keeps
+# the set value regardless of argument order (--strip is a starting condition,
+# not an ordered step), so the result of ticking the box with fields filled in
+# would be "removed all metadata except this one" - not what the box says. The
+# panel takes the fields out of play instead.
+apply_metadata_mode_state() {
+    local state=omc_enable
+    [ "$OMC_ACTIONUI_VIEW_195_VALUE" = "true" ] && state=omc_disable
+
+    "$dialog_tool" "$window_uuid" ${META_TITLE_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${META_AUTHOR_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${META_SUBJECT_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${META_KEYWORDS_ID} "$state"
+    "$dialog_tool" "$window_uuid" ${META_CREATOR_ID} "$state"
 }
 
 # Switch off the OCR controls the searchable path cannot use.
@@ -266,5 +296,9 @@ Pick another operation, or use QuickPDF if it offers this one."
 
     if [ "$want" = "${GROUP_WATERMARK_ID}" ]; then
         apply_watermark_mode_state
+    fi
+
+    if [ "$want" = "${GROUP_METADATA_ID}" ]; then
+        apply_metadata_mode_state
     fi
 }

@@ -229,6 +229,26 @@
     },
     {
       "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.run.assemble",
+      "EXECUTION_MODE": "exe_script_file",
+      "SAVE_AS_DIALOG": {
+        "MESSAGE": "Save the new PDF as",
+        "DEFAULT_FILE_NAME": [
+          "Assembled.pdf"
+        ],
+        "BUTTON_PROMPT": "Create"
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
+    },
+    {
+      "NAME": "PDFUtil",
+      "COMMAND_ID": "PDFUtil.metadata.mode.changed",
+      "EXECUTION_MODE": "exe_script_file"
+    },
+    {
+      "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.crop.mode.changed",
       "EXECUTION_MODE": "exe_script_file"
     },

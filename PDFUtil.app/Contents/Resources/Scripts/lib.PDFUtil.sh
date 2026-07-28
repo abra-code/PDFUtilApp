@@ -79,8 +79,10 @@ GROUP_MERGE_ID=210
 GROUP_OCR_ID=211
 GROUP_WATERMARK_ID=212
 GROUP_FLATTEN_ID=213
+GROUP_FROMPAGES_ID=214
+GROUP_METADATA_ID=215
 
-SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213"
+SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215"
 
 # Reduce controls (id band 70-80)
 RED_QUALITY_ID=72
@@ -176,6 +178,26 @@ OCR_DPI_ID=182
 OCR_SEARCHABLE_ID=183
 OCR_RANGE_ID=184
 
+# Metadata controls (id band 190-195).
+#
+# Five text attributes plus a strip toggle. There is deliberately no Producer or
+# date field: PDFKit's writer resets Producer, the creation date and the
+# modification date on every save, so a field for them would be a control that
+# cannot work. pdfutil says so on stderr; the panel says so up front instead.
+META_TITLE_ID=190
+META_AUTHOR_ID=191
+META_SUBJECT_ID=192
+META_KEYWORDS_ID=193
+META_CREATOR_ID=194
+META_STRIP_ID=195
+
+# Build PDF from Images controls (id band 220-221).
+#
+# Allocated above the GroupBox band (200-219) rather than squeezed next to the
+# metadata fields: this operation had no band in the plan's id map, and the two
+# are unrelated. One control today, room for a second without moving anything.
+FP_DPI_ID=220
+
 # Watermark controls (id band 160-168).
 #
 # Two modes that share almost no flags. Burn-in redraws the page with the mark
@@ -211,6 +233,8 @@ NOTICE_MERGE_ID=310
 NOTICE_OCR_ID=311
 NOTICE_WATERMARK_ID=312
 NOTICE_FLATTEN_ID=313
+NOTICE_FROMPAGES_ID=314
+NOTICE_METADATA_ID=315
 
 # Runtime tools
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
