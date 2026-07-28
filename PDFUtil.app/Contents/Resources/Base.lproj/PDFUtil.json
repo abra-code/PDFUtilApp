@@ -158,7 +158,6 @@
                 { "section": "Content" },
                 { "title": "Watermark", "tag": "watermark" },
                 { "title": "Flatten", "tag": "flatten" },
-                { "title": "Fill Form", "tag": "forms" },
                 { "title": "Edit Metadata", "tag": "metadata" },
                 { "section": "Security" },
                 { "title": "Set Password", "tag": "encrypt" },
@@ -1754,6 +1753,88 @@
                   {
                     "type": "Text",
                     "id": 313,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 217,
+            "properties": {
+              "title": "Linearize",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Rewrites the file so a viewer can show the first page before the rest has downloaded. Nothing to configure.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 317,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 218,
+            "properties": {
+              "title": "Convert to PDF/A",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Rewrites the document in an archival form that embeds its fonts and forbids external dependencies. Nothing to configure.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 318,
                     "properties": {
                       "text": "",
                       "foregroundStyle": "orange",

@@ -57,6 +57,12 @@ structure_notice() {
         flatten)
             echo "Removes interactivity deliberately: filled-in values and annotation appearances are painted into the page and the fields themselves are gone. The outline survives; nothing can be edited afterwards."
             ;;
+        linearize)
+            echo "Redraws the pages, so annotations, links, the outline and form fields are not carried over. QuickPDF builds a better hint table through qpdf and keeps the structure - use it instead when the document has any of that to lose, or when strict validity matters."
+            ;;
+        pdfa)
+            echo "Redraws the pages, so annotations, links, the outline and form fields are not carried over. The output is tagged PDF/A-2B but its conformance is NOT verified - validate with veraPDF before relying on it for archival."
+            ;;
         frompages)
             echo "The one operation whose inputs are images rather than PDFs; pages come out in list order. An animated GIF or multi-page TIFF contributes one page per frame. A PDF in the list is redrawn, losing annotations, links, the outline and form fields - use Merge to combine PDFs instead."
             ;;
@@ -93,6 +99,8 @@ notice_id_for_operation() {
         frompages) echo ${NOTICE_FROMPAGES_ID} ;;
         metadata)  echo ${NOTICE_METADATA_ID} ;;
         inspect)   echo ${NOTICE_INSPECT_ID} ;;
+        linearize) echo ${NOTICE_LINEARIZE_ID} ;;
+        pdfa)      echo ${NOTICE_PDFA_ID} ;;
         *)       echo "" ;;
     esac
 }
@@ -118,6 +126,8 @@ panel_for_operation() {
         frompages) echo ${GROUP_FROMPAGES_ID} ;;
         metadata)  echo ${GROUP_METADATA_ID} ;;
         inspect)   echo ${GROUP_INSPECT_ID} ;;
+        linearize) echo ${GROUP_LINEARIZE_ID} ;;
+        pdfa)      echo ${GROUP_PDFA_ID} ;;
         *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }

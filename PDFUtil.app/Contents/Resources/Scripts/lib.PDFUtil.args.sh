@@ -667,6 +667,20 @@ build_pdfutil_args() {
             PDFUTIL_OUTPUT_KIND="pdf"
             ;;
 
+        # Both take nothing but the common options - no flags to build, and no
+        # settings panel beyond their notice. They are separate arms rather than
+        # one shared arm with the verb interpolated, because that is the shape
+        # every other operation has and the saving would be one line.
+        linearize)
+            PDFUTIL_VERB="linearize"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            ;;
+
+        pdfa)
+            PDFUTIL_VERB="pdfa"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            ;;
+
         *)
             return 1
             ;;
