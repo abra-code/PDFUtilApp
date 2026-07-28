@@ -65,10 +65,16 @@ details=""
 
 set_summary "Running $(operation_label "$operation") on ${#files[@]} file(s)..."
 
+file_index=0
 for file_path in "${files[@]}"; do
     [ -z "$file_path" ] && continue
 
     filename="$(/usr/bin/basename "$file_path")"
+    file_index=$((file_index + 1))
+    # Before the work, not after: the point is to name the file currently being
+    # chewed on, so a run that stalls says which document it stalled on.
+    set_batch_progress "$operation" "$file_index" "${#files[@]}" "$filename" \
+        "$success_count" "$error_count"
 
     if [ ! -e "$file_path" ]; then
         error_count=$((error_count + 1))

@@ -146,6 +146,7 @@
               "options": [
                 { "section": "Size & Convert" },
                 { "title": "Reduce File Size", "tag": "reduce" },
+                { "title": "Convert to Grayscale", "tag": "gray" },
                 { "title": "Linearize (fast web view)", "tag": "linearize" },
                 { "title": "Convert to PDF/A", "tag": "pdfa" },
                 { "section": "Pages" },
@@ -272,21 +273,11 @@
                     ]
                   },
                   {
-                    "type": "Toggle",
-                    "id": 80,
-                    "properties": {
-                      "title": "Convert to grayscale",
-                      "isOn": false,
-                      "style": "checkbox",
-                      "actionID": "PDFUtil.reduce.mode.changed"
-                    }
-                  },
-                  {
                     "type": "Text",
                     "id": 300,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -424,7 +415,7 @@
                     "id": 301,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -486,7 +477,7 @@
                     "id": 302,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -686,7 +677,7 @@
                     "id": 303,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -739,7 +730,7 @@
                     "id": 304,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -792,7 +783,7 @@
                     "id": 305,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -845,7 +836,7 @@
                     "id": 306,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -920,7 +911,7 @@
                     "id": 307,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1038,7 +1029,7 @@
                     "id": 308,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1101,7 +1092,7 @@
                     "id": 309,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1141,7 +1132,7 @@
                     "id": 310,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1257,7 +1248,7 @@
                     "id": 311,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1448,7 +1439,7 @@
                     "id": 312,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1557,7 +1548,7 @@
                     "id": 314,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1648,7 +1639,7 @@
                     "id": 315,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1689,7 +1680,48 @@
                     "id": 313,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Divider",
+                    "properties": { "opacity": 0, "frame": { "height": 0 } }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 219,
+            "properties": {
+              "title": "Convert to Grayscale",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 10, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "Converts every page to shades of grey using the system Gray Tone filter. Nothing to configure.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "frame": { "maxWidth": 99999, "alignment": "leading" }
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "id": 319,
+                    "properties": {
+                      "text": "",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1730,7 +1762,7 @@
                     "id": 317,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }
@@ -1771,7 +1803,7 @@
                     "id": 318,
                     "properties": {
                       "text": "",
-                      "foregroundStyle": "orange",
+                      "foregroundStyle": "secondary",
                       "font": "caption",
                       "frame": { "maxWidth": 99999, "alignment": "leading" }
                     }

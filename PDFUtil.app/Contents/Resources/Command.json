@@ -264,11 +264,6 @@
     },
     {
       "NAME": "PDFUtil",
-      "COMMAND_ID": "PDFUtil.reduce.mode.changed",
-      "EXECUTION_MODE": "exe_script_file"
-    },
-    {
-      "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.ocr.mode.changed",
       "EXECUTION_MODE": "exe_script_file"
     },

@@ -175,3 +175,40 @@ contains "$out" "does not exist" || fail "info did not report a missing file"
 # A locked PDF explains itself rather than reporting a bare failure.
 out="$(run_info "$FIX/locked.pdf")"
 contains "$out" "password-protected" || fail "info did not explain a locked PDF"
+
+# --- batch progress ---------------------------------------------------------
+#
+# pdfutil has no --progress and the slow runs are slow INSIDE a file, so nothing
+# can report finer than per-file. That is still the difference between "working"
+# and "hung" on a twenty-file OCR batch. The Summary is the surface: OMC's
+# PROGRESS dialog only works for popen-based execution modes, and the batch
+# runner is exe_script_file.
+reset_controls
+set_batch_progress reduce 3 12 "report.pdf" 2 0
+prog="$(cat "$OMC_TEST_LOG/summary.txt")"
+contains "$prog" "File 3 of 12"   || fail "progress did not report position: $prog"
+contains "$prog" "report.pdf"     || fail "progress did not name the file: $prog"
+contains "$prog" "Reduce File Size" || fail "progress did not name the operation: $prog"
+contains "$prog" "2 done"         || fail "progress did not carry the running tally: $prog"
+
+# Failures are carried too, so a batch that is going wrong says so while it runs
+# rather than only in the final report.
+set_batch_progress ocr 5 5 "scan.pdf" 3 1
+prog="$(cat "$OMC_TEST_LOG/summary.txt")"
+contains "$prog" "1 failed" || fail "progress did not carry the failure count: $prog"
+
+# The first file has nothing to tally yet, and a bare "0 done" reads as a stall.
+set_batch_progress reduce 1 4 "first.pdf" 0 0
+prog="$(cat "$OMC_TEST_LOG/summary.txt")"
+if contains "$prog" "0 done"; then fail "progress showed an empty tally on the first file: $prog"; fi
+contains "$prog" "File 1 of 4" || fail "progress lost its position line: $prog"
+
+# It replaces the Summary rather than appending, or a long batch would scroll
+# away from the user.
+set_batch_progress reduce 2 4 "second.pdf" 1 0
+prog="$(cat "$OMC_TEST_LOG/summary.txt")"
+if contains "$prog" "first.pdf"; then fail "progress appended instead of replacing: $prog"; fi
+
+# The batch runner must actually call it, or all of the above is theatre.
+grep -q "set_batch_progress" "$SCRIPTS/PDFUtil.run.batch.sh" \
+    || fail "the batch runner does not report progress"

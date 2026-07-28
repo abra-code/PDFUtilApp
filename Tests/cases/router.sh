@@ -22,7 +22,7 @@ check_kind() {
     build_pdfutil_args "$1" >/dev/null 2>&1
     expect_eq "$2" "$PDFUTIL_OUTPUT_KIND" "output kind for $1"
 }
-for op in reduce linearize pdfa extract delete rotate crop watermark flatten \
+for op in reduce gray linearize pdfa extract delete rotate crop watermark flatten \
           metadata encrypt decrypt; do
     check_kind "$op" pdf
 done
@@ -58,7 +58,7 @@ fi
 # disagree about what exists.
 expect_eq "$GROUP_PLACEHOLDER_ID" "$(panel_for_operation nosuchoperation)" \
     "an unknown operation shows the placeholder panel"
-for op in reduce linearize pdfa frompages metadata; do
+for op in reduce gray linearize pdfa frompages metadata; do
     if [ "$(panel_for_operation "$op")" = "$GROUP_PLACEHOLDER_ID" ]; then
         fail "$op is built but still shows the 'not available yet' placeholder"
     fi

@@ -350,30 +350,30 @@ build_pdfutil_args() {
         reduce)
             PDFUTIL_VERB="reduce"
             PDFUTIL_OUTPUT_KIND="pdf"
-            if [ "$OMC_ACTIONUI_VIEW_80_VALUE" = "true" ]; then
-                # Grayscale is a different filter, not a modifier on the
-                # recompression one: pdfutil builds the Gray Tone filter INSTEAD
-                # of the quality/dpi/max-edge one, and refuses the combination
-                # rather than accepting the three and dropping them. So this
-                # branch emits --gray alone, exactly as the OCR searchable
-                # branch emits --searchable alone. The panel greys the three
-                # controls out to match (apply_reduce_mode_state).
-                PDFUTIL_ARGS+=(--gray)
+            PDFUTIL_ARGS+=(-q "$(clamp_quality "$OMC_ACTIONUI_VIEW_72_VALUE" 85)")
+            # -r is a ceiling, and 0 disables downsampling entirely. Passing it
+            # explicitly in both cases keeps the toggle honest: pdfutil's own
+            # default is 150, so omitting -r when the toggle is off would
+            # downsample anyway.
+            if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
+                PDFUTIL_ARGS+=(-r "$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)")
             else
-                PDFUTIL_ARGS+=(-q "$(clamp_quality "$OMC_ACTIONUI_VIEW_72_VALUE" 85)")
-                # -r is a ceiling, and 0 disables downsampling entirely. Passing
-                # it explicitly in both cases keeps the toggle honest: pdfutil's
-                # own default is 150, so omitting -r when the toggle is off
-                # would downsample anyway.
-                if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
-                    PDFUTIL_ARGS+=(-r "$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)")
-                else
-                    PDFUTIL_ARGS+=(-r 0)
-                fi
-                if [ "$OMC_ACTIONUI_VIEW_78_VALUE" = "true" ]; then
-                    PDFUTIL_ARGS+=(-m "$(clamp_pixels "$OMC_ACTIONUI_VIEW_79_VALUE" 2000)")
-                fi
+                PDFUTIL_ARGS+=(-r 0)
             fi
+            if [ "$OMC_ACTIONUI_VIEW_78_VALUE" = "true" ]; then
+                PDFUTIL_ARGS+=(-m "$(clamp_pixels "$OMC_ACTIONUI_VIEW_79_VALUE" 2000)")
+            fi
+            ;;
+
+        # Its own operation, not a mode of Reduce. --gray selects the system Gray
+        # Tone filter, which pdfutil builds INSTEAD of the recompression filter
+        # and refuses to combine with -q/-r/-m. As a checkbox inside Reduce it
+        # had to grey out every other control in the panel and explain why, which
+        # is a separate operation wearing a toggle's clothes.
+        gray)
+            PDFUTIL_VERB="reduce"
+            PDFUTIL_OUTPUT_KIND="pdf"
+            PDFUTIL_ARGS+=(--gray)
             ;;
 
         render)

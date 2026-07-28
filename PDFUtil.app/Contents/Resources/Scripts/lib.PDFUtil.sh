@@ -83,10 +83,11 @@ GROUP_FROMPAGES_ID=214
 GROUP_METADATA_ID=215
 GROUP_LINEARIZE_ID=217
 GROUP_PDFA_ID=218
-# 219 is the last id in the GroupBox band and is now free: it was reserved for a
-# Fill Form panel, which was dropped rather than built (DESIGN.md 14.2).
+# 219 was reserved for a Fill Form panel, which was dropped rather than built
+# (DESIGN.md section 14); Convert to Grayscale took the freed id.
+GROUP_GRAY_ID=219
 
-SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 217 218"
+SETTINGS_PANEL_IDS="198 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 217 218 219"
 
 # Reduce controls (id band 70-80)
 RED_QUALITY_ID=72
@@ -94,7 +95,6 @@ RED_DOWNSAMPLE_ID=76
 RED_DPI_ID=77
 RED_MAXEDGE_ON_ID=78
 RED_MAXEDGE_PX_ID=79
-RED_GRAY_ID=80
 
 # Export Page Images controls (id band 170-174)
 RND_FORMAT_ID=170
@@ -258,6 +258,7 @@ NOTICE_FROMPAGES_ID=314
 NOTICE_METADATA_ID=315
 NOTICE_LINEARIZE_ID=317
 NOTICE_PDFA_ID=318
+NOTICE_GRAY_ID=319
 
 # Runtime tools
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
@@ -431,6 +432,7 @@ operation_label() {
         reduce)    echo "Reduce File Size" ;;
         linearize) echo "Linearize" ;;
         pdfa)      echo "Convert to PDF/A" ;;
+        gray)      echo "Convert to Grayscale" ;;
         extract)   echo "Extract or Reorder" ;;
         delete)    echo "Delete Pages" ;;
         rotate)    echo "Rotate" ;;

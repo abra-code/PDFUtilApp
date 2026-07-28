@@ -9,7 +9,7 @@
 # The redraw set, measured rather than assumed (see the table in start.batch).
 load_handler_locals PDFUtil.start.batch.sh
 
-for op in reduce linearize pdfa frompages; do
+for op in reduce gray linearize pdfa frompages; do
     if ! operation_redraws "$op"; then fail "$op should be in the redraw set"; fi
 done
 for op in extract delete rotate crop merge metadata decrypt encrypt text render; do
@@ -64,10 +64,27 @@ done
 # --- every redraw operation carries a permanent notice ---------------------
 # The pre-flight is conditional; the notice is not. An operation that silently
 # discards structure with no notice is the exact hazard this design exists for.
-for op in reduce linearize pdfa frompages watermark flatten; do
+for op in reduce gray linearize pdfa frompages watermark flatten; do
     n="$(structure_notice "$op")"
     [ -n "$n" ] || fail "$op has no structure notice"
-    contains "$n" "outline" || fail "$op's notice does not mention the outline: $n"
+done
+# The ones that discard structure say so in those words. frompages is excluded:
+# only its PDF inputs are at risk, and its notice says "redrawn" and points at
+# Merge, which is the actionable form of the same fact.
+for op in reduce gray linearize pdfa watermark flatten; do
+    contains "$(structure_notice "$op")" "outline" \
+        || fail "$op's notice does not mention the outline: $(structure_notice "$op")"
+done
+contains "$(structure_notice frompages)" "redrawn" \
+    || fail "the frompages notice should say PDF inputs are redrawn"
+
+# Succinct is a requirement, not a preference: a notice nobody finishes reading
+# is not a notice. These sit under a settings panel, so keep them to a couple of
+# short sentences.
+for op in reduce gray linearize pdfa render text ocr encrypt decrypt extract \
+          delete rotate crop split merge watermark flatten frompages metadata; do
+    n="$(structure_notice "$op")"
+    [ ${#n} -le 160 ] || fail "$op's notice is ${#n} chars - too long to be read: $n"
 done
 
 # The two Stage 10 notices must also steer, not just warn.

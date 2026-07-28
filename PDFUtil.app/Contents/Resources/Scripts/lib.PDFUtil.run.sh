@@ -19,6 +19,35 @@
 # Runs under /bin/sh (macOS bash 3.2 in POSIX mode): no process substitution,
 # no mapfile, no declare -A, no ${var,,}. Validate with `sh -n`, never `bash -n`.
 
+# Report progress through the Summary while a batch runs.
+#
+# pdfutil has no --progress and the runs that are slow (OCR, render at high DPI)
+# are slow INSIDE a single file, so nothing can report finer than per-file. That
+# is still worth having: on a twenty-file OCR batch the difference between "the
+# app is working" and "the app is hung" is exactly this line.
+#
+# The Summary rather than OMC's PROGRESS dialog, for two reasons. PROGRESS only
+# works for popen-based execution modes, and the batch runner is exe_script_file
+# - adopting it would mean opening an output window for every run. And a modal
+# progress sheet over a batch the user chose to start is worse than a status line
+# in the window they are already looking at.
+#
+# Each call replaces the whole Summary, so the display never grows; the tallies
+# are carried in so a long run still shows what has happened so far rather than
+# only where it is.
+#
+# Arguments: operation, index (1-based), total, current file name, ok, failed
+set_batch_progress() {
+    local trailer=""
+    if [ "$5" -gt 0 ] || [ "$6" -gt 0 ]; then
+        trailer="
+${5} done"
+        [ "$6" -gt 0 ] && trailer="${trailer} - ${6} failed"
+    fi
+    set_summary "$(operation_label "$1")
+File ${2} of ${3}: ${4}${trailer}"
+}
+
 # Echo a path that does not exist yet. If the given path is taken, append
 # " 2", " 3", ... before the extension (or to the name for folders and
 # extensionless paths).

@@ -16,58 +16,61 @@
 structure_notice() {
     case "$1" in
         reduce)
-            echo "Redraws pages: annotations, links, outline, and form fields are not carried over. \"Convert to grayscale\" uses a different filter that replaces the quality, resolution and edge settings rather than adding to them."
+            echo "Redraws pages: annotations, links, the outline and form fields are lost."
             ;;
-        render)
-            echo "Rasterizes pages to images. Text stops being selectable and searchable - export at a higher DPI if the result will be read on screen."
-            ;;
-        text)
-            echo "Extracts the existing text layer only. Scanned pages have none and come out empty - use OCR for those."
-            ;;
-        encrypt)
-            echo "Writes 128-bit AES (revision 4): ASCII passwords only, and only their first 32 characters count. Use QuickPDF's 256-bit AES if you need more. Permissions bind only readers who open with the user password, so a single password serving as both restricts nobody."
-            ;;
-        decrypt)
-            echo "Saves an unlocked copy and leaves the original untouched."
-            ;;
-        extract)
-            echo "Keeps the listed pages in the listed order, so repeats and reordering are legal. Rebuilds the document: the outline is not carried over."
-            ;;
-        delete)
-            echo "Edits in place and keeps the outline, so entries pointing at removed pages may dangle."
-            ;;
-        rotate)
-            echo "Lossless: only each page's rotation entry changes. Degrees are added to the current rotation, not set - rotating 90 twice gives 180."
-            ;;
-        crop)
-            echo "Lossless: content is untouched and only the page box changes, so cropped-away material is hidden rather than removed."
-            ;;
-        split)
-            echo "Each part keeps its pages' annotations, links and form fields; the document outline is not carried into the parts."
-            ;;
-        merge)
-            echo "Inputs are joined in list order. Page-level structure is carried over; the document outline is not merged across inputs."
-            ;;
-        ocr)
-            echo "Reads the pages as pictures, so it works on scans with no text layer at all. Recognition is never perfect - check the result before relying on it. \"Embed a searchable text layer\" saves a PDF through a different engine, which covers the whole document and picks its own settings, so the language, speed, resolution and page-range controls do not apply to it."
-            ;;
-        watermark)
-            echo "Burning the mark in redraws the pages: annotations, links, the outline and form fields are not carried over. Adding it as an annotation keeps all of that and stays editable, but is text-only and cannot be rotated."
-            ;;
-        flatten)
-            echo "Removes interactivity deliberately: filled-in values and annotation appearances are painted into the page and the fields themselves are gone. The outline survives; nothing can be edited afterwards."
+        gray)
+            echo "Redraws pages: annotations, links, the outline and form fields are lost. Colour is discarded, not recoverable."
             ;;
         linearize)
-            echo "Redraws the pages, so annotations, links, the outline and form fields are not carried over. QuickPDF builds a better hint table through qpdf and keeps the structure - use it instead when the document has any of that to lose, or when strict validity matters."
+            echo "Redraws pages: annotations, links, the outline and form fields are lost. QuickPDF linearizes without that loss."
             ;;
         pdfa)
-            echo "Redraws the pages, so annotations, links, the outline and form fields are not carried over. The output is tagged PDF/A-2B but its conformance is NOT verified - validate with veraPDF before relying on it for archival."
+            echo "Redraws pages: annotations, links, the outline and form fields are lost. Tagged PDF/A-2B, conformance unverified - check with veraPDF."
+            ;;
+        render)
+            echo "Text stops being selectable. Use a higher DPI for anything read on screen."
+            ;;
+        text)
+            echo "Extracts an existing text layer. Scans have none - use OCR for those."
+            ;;
+        ocr)
+            echo "Reads pages as pictures, so recognition is never perfect. The searchable-PDF mode uses a different engine and ignores the settings above."
+            ;;
+        encrypt)
+            echo "128-bit AES, ASCII passwords, first 32 characters only. QuickPDF does 256-bit. Permissions bind only readers who open with the user password."
+            ;;
+        decrypt)
+            echo "Saves an unlocked copy; the original is untouched."
+            ;;
+        extract)
+            echo "Keeps the listed pages in the listed order, so repeats and reordering work. The outline is not carried over."
+            ;;
+        delete)
+            echo "Keeps the outline, so entries pointing at removed pages may dangle."
+            ;;
+        rotate)
+            echo "Lossless. Degrees are added to the current rotation, not set - 90 twice gives 180."
+            ;;
+        crop)
+            echo "Lossless: only the page box changes, so cropped-away content is hidden rather than removed."
+            ;;
+        split)
+            echo "Each part keeps its pages' annotations and links. The outline is not carried into the parts."
+            ;;
+        merge)
+            echo "Joined in list order. Page-level structure is kept; outlines are not merged."
+            ;;
+        watermark)
+            echo "Burning in redraws pages and loses annotations, links, the outline and form fields. Annotation mode keeps them but is text-only."
+            ;;
+        flatten)
+            echo "Fields and annotations are painted into the page and removed. The outline survives; nothing stays editable."
             ;;
         frompages)
-            echo "The one operation whose inputs are images rather than PDFs; pages come out in list order. An animated GIF or multi-page TIFF contributes one page per frame. A PDF in the list is redrawn, losing annotations, links, the outline and form fields - use Merge to combine PDFs instead."
+            echo "Images become pages in list order; one page per frame for animated GIF or multi-page TIFF. A PDF in the list is redrawn - use Merge to combine PDFs."
             ;;
         metadata)
-            echo "Edits the Info dictionary and keeps the document's structure. PDFKit's writer resets Producer and both dates on every save whatever is set here, so those three are not offered as fields."
+            echo "Keeps the document's structure. PDFKit resets Producer and both dates on every save regardless."
             ;;
         *)
             echo ""
@@ -97,6 +100,7 @@ notice_id_for_operation() {
         metadata)  echo ${NOTICE_METADATA_ID} ;;
         linearize) echo ${NOTICE_LINEARIZE_ID} ;;
         pdfa)      echo ${NOTICE_PDFA_ID} ;;
+        gray)      echo ${NOTICE_GRAY_ID} ;;
         *)       echo "" ;;
     esac
 }
@@ -123,6 +127,7 @@ panel_for_operation() {
         metadata)  echo ${GROUP_METADATA_ID} ;;
         linearize) echo ${GROUP_LINEARIZE_ID} ;;
         pdfa)      echo ${GROUP_PDFA_ID} ;;
+        gray)      echo ${GROUP_GRAY_ID} ;;
         *)       echo ${GROUP_PLACEHOLDER_ID} ;;
     esac
 }
@@ -176,25 +181,6 @@ apply_split_mode_state() {
     else
         "$dialog_tool" "$window_uuid" ${SPLIT_EVERY_ID} omc_enable
     fi
-}
-
-# Switch off the recompression controls that grayscale mode replaces.
-#
-# --gray selects the system Gray Tone filter, which is built INSTEAD of the
-# recompression filter rather than on top of it, so quality, resolution and
-# max-edge have nothing to act on. pdfutil used to accept all three and drop
-# them silently (-q 1 and -q 100 gave byte-identical files); it now refuses the
-# combination, so build_pdfutil_args must stop emitting them as well - see the
-# reduce case there.
-apply_reduce_mode_state() {
-    local state=omc_enable
-    [ "$OMC_ACTIONUI_VIEW_80_VALUE" = "true" ] && state=omc_disable
-
-    "$dialog_tool" "$window_uuid" ${RED_QUALITY_ID} "$state"
-    "$dialog_tool" "$window_uuid" ${RED_DOWNSAMPLE_ID} "$state"
-    "$dialog_tool" "$window_uuid" ${RED_DPI_ID} "$state"
-    "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_ON_ID} "$state"
-    "$dialog_tool" "$window_uuid" ${RED_MAXEDGE_PX_ID} "$state"
 }
 
 # Show the one row the chosen page-sizing mode actually uses.
@@ -299,10 +285,6 @@ apply_operation_panel() {
         "$dialog_tool" "$window_uuid" ${GROUP_PLACEHOLDER_ID} \
             "$(operation_label "$op") is not available yet.
 Pick another operation, or use QuickPDF if it offers this one."
-    fi
-
-    if [ "$want" = "${GROUP_REDUCE_ID}" ]; then
-        apply_reduce_mode_state
     fi
 
     if [ "$want" = "${GROUP_RENDER_ID}" ]; then

@@ -42,7 +42,7 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
 # outline and one with form fields, and the output re-read with `info` and
 # `forms --list`:
 #
-#   reduce, linearize, pdfa, watermark (burn-in)  outline AND fields lost
+#   reduce, gray, linearize, pdfa, watermark (burn-in)  outline AND fields lost
 #   watermark --annotation                        both kept
 #   ocr --searchable                              both kept
 #   flatten                                       outline kept, fields removed
@@ -58,7 +58,7 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.args.sh"
 # Arguments: operation tag
 operation_redraws() {
     case "$1" in
-        reduce | linearize | pdfa)
+        reduce | gray | linearize | pdfa)
             return 0
             ;;
         frompages)

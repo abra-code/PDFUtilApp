@@ -14,7 +14,7 @@
 reset_controls
 
 # Every operation the picker offers, in picker order.
-ALL_OPS="reduce linearize pdfa extract delete rotate crop split merge \
+ALL_OPS="reduce gray linearize pdfa extract delete rotate crop split merge \
          watermark flatten metadata encrypt decrypt render text ocr \
          frompages"
 
@@ -66,17 +66,27 @@ contains "$out" "refusing to run pdfutil without an output path" \
 # to make them unreachable; the builder is the last line of defence, because a
 # control can hold a stale value from before a mode toggle was flipped.
 
-# reduce: --gray replaces recompression rather than tuning it.
+# Convert to Grayscale is its own operation, not a mode of Reduce. pdfutil
+# refuses --gray alongside -q/-r/-m, so the separation has to hold in the
+# arguments and not only in the UI: whatever the Reduce controls happen to
+# contain, the grayscale run must send --gray and nothing else.
 reset_controls
-OMC_ACTIONUI_VIEW_80_VALUE=true
 OMC_ACTIONUI_VIEW_72_VALUE=85 OMC_ACTIONUI_VIEW_76_VALUE=true OMC_ACTIONUI_VIEW_77_VALUE=150
-joined="$(args_for reduce)"
-contains "$joined" "--gray" || fail "grayscale reduce lost --gray: $joined"
+OMC_ACTIONUI_VIEW_78_VALUE=true OMC_ACTIONUI_VIEW_79_VALUE=2000
+joined="$(args_for gray)"
+contains "$joined" "--gray" || fail "grayscale lost --gray: $joined"
 for flag in -q -r -m; do
     if contains " $joined " " $flag "; then
-        fail "grayscale reduce also emitted $flag (pdfutil refuses the pair): $joined"
+        fail "grayscale also emitted $flag (pdfutil refuses the pair): $joined"
     fi
 done
+# ...and Reduce never sends --gray, whatever it is handed.
+reset_controls
+joined="$(args_for reduce)"
+if contains "$joined" "--gray"; then fail "Reduce emitted --gray: $joined"; fi
+# Both run the same verb, so the router must not tell them apart by verb alone.
+expect_eq "reduce" "$(build_pdfutil_args gray >/dev/null 2>&1; printf '%s' "$PDFUTIL_VERB")" \
+    "grayscale runs the reduce verb"
 
 # ocr: --searchable covers the whole document and picks its own parameters.
 reset_controls
