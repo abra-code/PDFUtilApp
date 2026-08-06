@@ -46,9 +46,9 @@
 	<key>CFBundleExecutable</key>
 	<string>PDFUtil</string>
 	<key>CFBundleIconFile</key>
-	<string>Tools</string>
+	<string>PDF</string>
 	<key>CFBundleIconName</key>
-	<string>Tools</string>
+	<string>PDF</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.abracode.pdfutil</string>
 	<key>CFBundleInfoDictionaryVersion</key>
