@@ -37,6 +37,12 @@ badge_for_type() {
 add_files_to_table() {
     local new_paths="$1"
     local buffer=""
+    # Loop variables, declared so they stay in this function. Both loops below
+    # read from a here-string or a file rather than a pipeline, so they run in
+    # the current shell and would otherwise assign at global scope. The two
+    # names immediately below are global on purpose - they are this function's
+    # documented outputs - and must stay that way.
+    local file_path found_file
 
     FIRST_FILE_PATH=""
     if [ -n "$OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS" ]; then
