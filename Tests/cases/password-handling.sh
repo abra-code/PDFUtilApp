@@ -1,8 +1,9 @@
 # password-handling.sh - how pdfutil itself treats passwords.
 #
-# The applet never puts a password in the argument list; it uses the
-# --password-stdin forms everywhere, because argv is visible to every process on
-# the machine through `ps`. That the app does so is asserted in its omctest
+# pdfutil accepts at most one password on stdin, so the applet spends that slot
+# on the password whose exposure matters most and passes any second one inline,
+# where `ps` can read it - narrowing the exposure rather than eliminating it.
+# Which password goes where is the app's decision and is asserted in its omctest
 # suite. What is asserted HERE is the binary's own side of the arrangement: that
 # the stdin forms work, that an empty one is a usage error rather than a blank
 # password, and that a document really is unreadable without the key.

@@ -161,13 +161,22 @@ fi
 # else, so a missing one is a dead menu entry rather than a degraded feature.
 # Derived from the PDFUTIL_VERB assignments in Scripts/lib.PDFUtil.args.sh plus
 # the direct calls in the runners; keep in step when an operation is added.
+#
+# `forms` and `search` are deliberately NOT here: the app dropped its batch
+# Inspect tier, so it no longer invokes either. The count in the message below
+# is computed rather than typed - the hardcoded "19" outlived two edits to this
+# list and was wrong in both directions, claiming 19 while listing 18 and
+# omitting linearize and pdfa, which the app does emit.
+_verbs="crop decrypt encrypt flatten frompages info linearize merge metadata
+        ocr outline pages pdfa reduce render rotate split text watermark"
 _missing=""
-for _verb in crop decrypt encrypt flatten forms frompages info merge metadata \
-             ocr outline pages reduce render rotate search split text watermark; do
+_count=0
+for _verb in $_verbs; do
+    _count=$((_count + 1))
     "$PDFUTIL_BIN" "$_verb" --help >/dev/null 2>&1 || _missing="$_missing $_verb"
 done
 [ -z "$_missing" ] || fail "pdfutil is missing verbs the app calls:$_missing - wrong or old build?"
-echo "  ${GREEN}Verify OK${RESET}: all 19 verbs the app calls are present"
+echo "  ${GREEN}Verify OK${RESET}: all $_count verbs the app calls are present"
 
 # Capability spot-checks: flags the app EMITS that older pdfutil builds do not
 # accept. A verb existing is not enough - an embedded binary predating one of

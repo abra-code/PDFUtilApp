@@ -31,8 +31,13 @@ fi
 # Every verb the app can invoke. Derived from the PDFUTIL_VERB assignments in
 # lib.PDFUtil.args.sh plus the direct calls in the runners; a missing one is a
 # dead menu entry, not a degraded feature.
-for verb in crop decrypt encrypt flatten forms frompages info linearize merge \
-            metadata ocr outline pages pdfa reduce render rotate search split \
+#
+# `forms` and `search` are not here. Both exist in the binary, but the app
+# dropped its batch Inspect tier and no longer calls either, and a list that
+# claims to be "every verb the app calls" has to be exactly that or it stops
+# being checkable against the source.
+for verb in crop decrypt encrypt flatten frompages info linearize merge \
+            metadata ocr outline pages pdfa reduce render rotate split \
             text watermark; do
     expect_ok "$PDFUTIL" "$verb" --help
 done
