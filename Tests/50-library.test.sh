@@ -156,6 +156,39 @@ check "reduce never sends --gray" "no" "$(pdfutil_has_arg reduce --gray)"
 # Both run the same verb, so the router cannot tell them apart by verb alone.
 check "grayscale runs the reduce verb" "reduce" "$(pdfutil_verb_for gray)"
 
+# --------------------------------------------------------------------------
+section "an unchecked box in Reduce means off, not the engine's default"
+# --------------------------------------------------------------------------
+# Both -r and -m have a non-zero DEFAULT in pdfutil - 150 DPI and 2400 pixels -
+# so omitting either when its toggle is off does not disable it, it silently
+# applies the engine's value. The user unchecks a box and the thing still
+# happens. Both flags are therefore passed explicitly in both states, with 0
+# meaning "no ceiling" and "no cap".
+#
+# This is asserted on the VALUE, not on the flag's presence: the bug this
+# guards against ships a build where the flag is absent, and a presence check
+# would have to be spelled as an absence check, which passes just as well when
+# the whole operation stops emitting arguments.
+reset_document
+omc_control "$RED_DOWNSAMPLE_ID" false
+check "downsampling off sends -r 0, not silence" "0" "$(pdfutil_arg_after reduce -r)"
+
+reset_document
+omc_control "$RED_MAXEDGE_ON_ID" false
+check "edge cap off sends -m 0, not silence" "0" "$(pdfutil_arg_after reduce -m)"
+
+# The on states, so the checks above cannot pass by the builder emitting 0 for
+# everything - which is the failure they would otherwise be blind to.
+reset_document
+omc_control "$RED_DOWNSAMPLE_ID" true
+omc_control "$RED_DPI_ID" 150
+check "downsampling on sends its DPI" "150" "$(pdfutil_arg_after reduce -r)"
+
+reset_document
+omc_control "$RED_MAXEDGE_ON_ID" true
+omc_control "$RED_MAXEDGE_PX_ID" 2000
+check "edge cap on sends its pixel count" "2000" "$(pdfutil_arg_after reduce -m)"
+
 # OCR: --searchable covers the whole document and picks its own parameters.
 reset_document
 omc_control "$OCR_SEARCHABLE_ID" true

@@ -136,6 +136,25 @@ pdfutil_has_arg() { # <operation> <exact-arg> -> yes | no
         echo no'
 }
 
+# Echo the element that FOLLOWS a flag in the built argument list, or "" when the
+# flag is absent or ends the list.
+#
+# For the flags whose bug is a wrong value rather than a missing one. Element
+# matching for the same reason pdfutil_has_arg uses it: the joined-string form of
+# this question is `contains "$args" "-m 0"`, and a value check written that way
+# is one renamed flag away from matching something else entirely.
+pdfutil_arg_after() { # <operation> <flag> -> the next element, or ""
+    export OMCTEST_PU_OP="$1" OMCTEST_PU_ARG="$2"
+    pdfutil_eval '
+        build_pdfutil_args "$OMCTEST_PU_OP" >/dev/null 2>&1
+        _found=no
+        for _arg in "${PDFUTIL_ARGS[@]}"; do
+            if [ "$_found" = yes ]; then printf "%s" "$_arg"; exit 0; fi
+            [ "$_arg" = "$OMCTEST_PU_ARG" ] && _found=yes
+        done
+        printf ""'
+}
+
 # Run the argument list the builder produced against the real pdfutil, the way
 # _exec_pdfutil does. Echoes the exit status.
 #

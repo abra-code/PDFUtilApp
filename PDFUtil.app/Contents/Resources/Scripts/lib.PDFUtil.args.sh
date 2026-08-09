@@ -360,8 +360,17 @@ build_pdfutil_args() {
             else
                 PDFUTIL_ARGS+=(-r 0)
             fi
+            # -m is the same shape as -r and needs the same treatment for the
+            # same reason: pdfutil's own default is 2400, so omitting -m when
+            # the toggle is off caps the longest edge anyway. A checkbox that
+            # says "Cap longest image edge at:" and still caps when unchecked is
+            # lying to the user, and this one did until it was measured - the
+            # same input reduced to 149,935 bytes with -m omitted and 217,573
+            # with -m 0. 0 is pdfutil's documented "no cap".
             if [ "$OMC_ACTIONUI_VIEW_78_VALUE" = "true" ]; then
                 PDFUTIL_ARGS+=(-m "$(clamp_pixels "$OMC_ACTIONUI_VIEW_79_VALUE" 2000)")
+            else
+                PDFUTIL_ARGS+=(-m 0)
             fi
             ;;
 
