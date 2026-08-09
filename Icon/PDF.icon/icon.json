@@ -1,0 +1,65 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "automatic-gradient" : "display-p3:0.87012,0.34204,0.20416,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "automatic-gradient" : "srgb:0.47563,0.47565,0.47564,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "multiply",
+          "fill" : {
+            "automatic-gradient" : "extended-srgb:0.25882,0.25882,0.25882,1.00000"
+          },
+          "glass" : true,
+          "image-name" : "wrench.svg",
+          "name" : "wrench",
+          "position" : {
+            "scale" : 0.6,
+            "translation-in-points" : [
+              0,
+              250
+            ]
+          }
+        },
+        {
+          "fill" : {
+            "automatic-gradient" : "extended-srgb:0.00000,0.00000,0.00000,1.00000"
+          },
+          "glass" : true,
+          "image-name" : "picture_as_pdf.svg",
+          "name" : "picture_as_pdf",
+          "position" : {
+            "scale" : 2.5,
+            "translation-in-points" : [
+              -180,
+              70
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.1
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}
