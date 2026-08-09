@@ -1,20 +1,28 @@
 #!/bin/bash
-# test.sh - tests for the PDFUtil app bundle.
+# test.sh - engine tests for the pdfutil binary this app embeds.
 #
-# NOT a cross-tool suite. QuickPDFApp can run qpdf and pdfutil against each other
-# and use `qpdf --check` as an independent structural opinion; there is one engine
-# here, so that is not available. What this covers instead is everything the APP
-# adds on top of pdfutil: the argument builder, the router, file classification,
-# the structure pre-flight, output naming, password handling, and the operations
-# end to end.
+# This suite covers the binary: that it is present, universal, signed and
+# self-contained, that every verb and flag the app emits exists, and the handful
+# of pdfutil behaviors the applet is deliberately built around - render's two
+# meanings for -o, frompages fitting to the page rather than the image, reduce
+# declining to grow a file, and how passwords are accepted and refused.
 #
-# The distinction matters for scope. Whether `pdfa` really emits conformant
-# PDF/A-2B is pdfutil's question and pdfutil's suite answers it. Whether this app
-# builds a command line that runs, routes it to the right runner, and never omits
-# -o is this suite's question, and nothing else asks it.
+# It does NOT test the applet. Everything that was once here about the argument
+# builder, the router, file classification, the structure pre-flight and output
+# naming now lives in the omctest suite (Tests/*.test.sh, run by
+# `appletbuilder test PDFUtil.app`), which dispatches the real handlers against a
+# real window instead of sourcing the libraries and calling functions. That
+# suite can do things this one structurally could not: run a handler, see what
+# the window ended up showing, and check the ORDER of the refusals.
 #
-# Bash, not sh: the app's libraries use bash arrays (PDFUTIL_ARGS), and the cases
-# source them to drive the same code the app runs rather than reimplementing it.
+# The dividing line is enforced below rather than left to habit: no case file
+# here may source the applet's libraries. A case that needs to know what the app
+# would do with a value is an omctest case.
+#
+# The scope split is worth stating once. Whether `pdfa` really emits conformant
+# PDF/A-2B is pdfutil's own question and pdfutil's own suite answers it. Whether
+# THIS bundle ships a pdfutil that can be invoked the way the app invokes it is
+# this suite's question, and nothing else asks it.
 #
 # Deliberately NO `set -e`. A test runner is the worst possible place for it: it
 # ends the run at the first command that returns non-zero, which in a suite is a
@@ -40,8 +48,6 @@ cd "$(dirname "$0")" || die "cannot cd to the script's directory"
 # copy or an installed /Applications/PDFUtil.app.
 APP="${PDFUTIL_APP:-$PWD/PDFUtil.app}"
 PDFUTIL="$APP/Contents/Helpers/pdfutil"
-SCRIPTS="$APP/Contents/Resources/Scripts"
-LIB="$SCRIPTS/lib.PDFUtil.sh"
 
 FIX="Tests/fixtures"
 TMP="Tests/tmp"
@@ -51,7 +57,6 @@ TMP="Tests/tmp"
 # nothing is worse than one that fails.
 missing=""
 [ -x "$PDFUTIL" ] || missing="$missing\n  pdfutil: $PDFUTIL"
-[ -f "$LIB" ]     || missing="$missing\n  lib:     $LIB"
 if [ -n "$missing" ]; then
     printf 'ERROR: the app bundle is not populated. Missing:%b\n' "$missing" >&2
     echo "" >&2
@@ -139,15 +144,51 @@ expect_nogrep_all() {
     if "$@" 2>&1 | grep -q -- "$pat"; then fail "unexpected /$pat/ in stdout+stderr from: $*"; fi
 }
 
-# Put the app's own libraries and its fake OMC runtime into this shell. Sourcing
-# it can fail (a missing lib, an unreadable stub); if it does, every case below
-# would fail for the same reason, so stop here and say so once.
-[ -f Tests/harness.sh ] || die "Tests/harness.sh is missing"
-. Tests/harness.sh || die "Tests/harness.sh failed to load"
-for _fn in build_pdfutil_args classify_file panel_for_operation reset_controls; do
-    command -v "$_fn" >/dev/null 2>&1 \
-        || die "the harness loaded but $_fn is not defined - the app's libraries did not source correctly"
-done
+# Return 0 when "$1" contains "$2". A function rather than an inline `case`
+# because a case pattern's ")" terminates a $( ) command substitution in bash
+# 3.2, which is a parse error rather than a wrong answer.
+contains() {
+    case "$1" in
+        *"$2"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# For a case file's own SETUP steps - a mkdir, writing a fixture - as opposed to
+# the thing under test. Without `set -e` those run unchecked, and the negative
+# helpers are the ones that then lie: expect_fail and expect_nogrep both pass
+# when a command produces no output, which is exactly what happens when its
+# input was never created. A failed setup would be reported as a passing
+# assertion.
+#
+# Use as `require mkdir -p "$D" || return` - the `|| return` abandons the rest
+# of the case, which is the honest response to setup that did not happen, and
+# the subshell in the case loop keeps that contained.
+require() {
+    if ! "$@"; then
+        fail "setup failed: $*"
+        return 1
+    fi
+}
+
+# The dividing line between this suite and the omctest one, enforced rather than
+# documented. A case that sources a lib.PDFUtil.* library is testing the applet,
+# and the applet is tested by `appletbuilder test PDFUtil.app` against a real
+# window - where the control defaults are the ones PDFUtil.json declares,
+# instead of whatever the case happened to export.
+#
+# Checked by asking whether the libraries' functions are DEFINED after the case
+# ran, not by grepping for a source line. A grep only catches the spellings it
+# was written for - the shape these cases historically used was `. "$LIB"`,
+# naming a variable rather than the file, which a pattern looking for
+# "lib.PDFUtil." on the source line misses entirely. Asking the shell what got
+# defined cannot be out-spelled.
+#
+# It is a signpost for the next person adding a case, not a sandbox.
+sourced_the_applet() {
+    command -v build_pdfutil_args >/dev/null 2>&1 \
+        || command -v classify_file >/dev/null 2>&1
+}
 
 # Sourced inside an `if` so a case that returns non-zero is REPORTED rather than
 # killing the runner. A bare `. "$casefile"` under set -e ends the whole run at
@@ -157,6 +198,7 @@ done
 # nobody reads the exit code.
 #
 # The count is checked afterwards too, so a case that vanishes cannot go unnoticed.
+LEAKED="$TMP/.case-sourced-applet"
 ran=0
 for casefile in Tests/cases/*.sh; do
     echo "== $casefile =="
@@ -167,11 +209,20 @@ for casefile in Tests/cases/*.sh; do
     #
     # This works because failures are counted in a FILE: a subshell's variables
     # die with it, but its appends to $FAILLOG do not.
-    if ! ( . "$casefile" ); then
+    #
+    # The applet-library guard runs INSIDE that subshell, which is the only
+    # place the definitions exist - they die with it, which is exactly why a
+    # check after the fact would always find nothing.
+    rm -f "$LEAKED"
+    if ! ( . "$casefile"; sourced_the_applet && : > "$LEAKED"; true ); then
         fail "$casefile exited non-zero - it stopped early, so its later assertions never ran"
+    fi
+    if [ -e "$LEAKED" ]; then
+        fail "$casefile sources the applet's libraries - applet logic belongs in the omctest suite (Tests/*.test.sh)"
     fi
     ran=$((ran + 1))
 done
+rm -f "$LEAKED"
 
 expected=$(ls Tests/cases/*.sh 2>/dev/null | wc -l | tr -d ' ')
 if [ "$ran" != "$expected" ]; then

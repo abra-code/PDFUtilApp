@@ -1,0 +1,265 @@
+#!/bin/sh
+# Tests/20-filelist.test.sh - the file list: adding, dropping, removing, selecting.
+#
+# None of this is reachable by calling library functions, which is all the suite
+# this replaced could do. Everything here goes through the real handler scripts,
+# so the wiring between them - which handler reads which variable, which one
+# chains to which - is under test too.
+#
+# The list itself lives in table 10 and comes back to the handlers as
+# OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS. sync_file_list is what reproduces
+# that round trip; see lib.test.pdfutil.sh for why the harness cannot.
+. "${OMCTEST_LIB:?set OMCTEST_LIB, or run via: appletbuilder test}"
+. "$OMCTEST_TESTS/lib.test.pdfutil.sh"
+
+section "preconditions"
+check_preconditions
+
+text_pdf="$(fixture text.pdf)"
+image_pdf="$(fixture image.pdf)"
+photo_png="$(fixture photo.png)"
+notes_txt="$(fixture notes.txt)"
+
+# --------------------------------------------------------------------------
+section "adding a file through the picker"
+# --------------------------------------------------------------------------
+reset_document
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check_status "the handler succeeded" 0
+
+check "the file is in the list"      "1"          "$(file_count)"
+check "with its full path"           "$text_pdf"  "$(file_list)"
+check "and its display name"         "text.pdf"   "$(file_list_names)"
+check "badged as a pdf"              "doc.richtext" "$(file_list_badges)"
+
+# Adding to an empty list selects the first row, and does it by the dedicated
+# verb - setting a table's VALUE to select a row is the classic mistake and
+# would replace the rows with one string.
+check "the first row was selected"   "1" "$(ui_calls "omc_select_row")"
+check "the rows survived it"         "1" "$(file_count)"
+check "the detail buttons came alive" "1" "$(ui_enabled "$REMOVE_BUTTON_ID")"
+check "and so did Info"               "1" "$(ui_enabled "$INFO_BUTTON_ID")"
+
+# --------------------------------------------------------------------------
+section "the summary describes the selected pdf"
+# --------------------------------------------------------------------------
+check "it names the file"     "yes" "$(contains "$(summary)" "text.pdf")"
+check "it reports a size"     "yes" "$(contains "$(summary)" "Size:")"
+check "it reports a page count" "yes" "$(contains "$(summary)" "Pages:")"
+# A page count of "?" is what a failed read prints, and it would satisfy a
+# check that only looked for the word "Pages".
+check "the page count is a real number" "no" "$(contains "$(summary)" "Pages: ?")"
+
+# --------------------------------------------------------------------------
+section "a second add keeps the first file"
+# --------------------------------------------------------------------------
+omc_dialog_answer choose_object "$photo_png"
+run_with_list PDFUtil.add.files
+
+check "both files are listed" "2" "$(file_count)"
+check "the pdf is still there" "yes" "$(contains "$(file_list)" "$text_pdf")"
+check "and the image arrived"  "yes" "$(contains "$(file_list)" "$photo_png")"
+check "the image got the image badge" "yes" "$(contains "$(file_list_badges)" "photo")"
+
+# The list was not empty this time, so the handler must resync the detail pane
+# through the normal selection handler rather than force-selecting row 0.
+check "it resynced instead of reselecting" "1" \
+    "$(chain_requested PDFUtil.files.selection.changed)"
+
+# --------------------------------------------------------------------------
+section "the same file twice is still one row"
+# --------------------------------------------------------------------------
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check "the duplicate was folded away" "2" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "a file the tool cannot use is refused"
+# --------------------------------------------------------------------------
+reset_document
+omc_dialog_answer choose_object "$notes_txt"
+run_with_list PDFUtil.add.files
+check "a text file never enters the list" "0" "$(file_count)"
+
+# The positive control: the filter has to admit something, or the check above
+# passes for an applet that refuses everything.
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check "but a pdf does" "1" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "a mislabeled file is classified by content, not by name"
+# --------------------------------------------------------------------------
+# mislabeled.pdf is not a PDF. Trusting the extension would put it in the list
+# and fail much later, inside the run, with a message about a broken document.
+reset_document
+mislabeled="$(fixture mislabeled.pdf)"
+check "the fixture is named like a pdf" "pdf" "${mislabeled##*.}"
+check "but is not one"                  "no"  "$(contains "$(pdfutil_call classify_file "$mislabeled")" pdf)"
+omc_dialog_answer choose_object "$mislabeled"
+run_with_list PDFUtil.add.files
+check "so it never reaches the list" "0" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "dropping files on the table"
+# --------------------------------------------------------------------------
+reset_document
+omc_trigger "$TABLE_ID"
+omc_drop "$text_pdf" "$photo_png"
+run_with_list PDFUtil.files.drop
+check_status "the drop handler succeeded" 0
+check "both dropped files landed" "2" "$(file_count)"
+
+# A drop with nothing usable in it must leave the list alone rather than
+# clearing it.
+omc_trigger "$TABLE_ID"
+omc_drop "$notes_txt"
+run_with_list PDFUtil.files.drop
+check "an unusable drop changes nothing" "2" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "a drop carrying no context at all is survivable"
+# --------------------------------------------------------------------------
+omc_trigger "$TABLE_ID"
+run_with_list PDFUtil.files.drop
+check_status "the handler exited cleanly" 0
+check "and the list is untouched" "2" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "removing the selected file"
+# --------------------------------------------------------------------------
+reset_document
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+omc_dialog_answer choose_object "$photo_png"
+run_with_list PDFUtil.add.files
+check "two files to start" "2" "$(file_count)"
+
+# The two adds above already chained files.selection.changed, and the pending
+# slot holds one value - so without this reset the resync check below would be
+# satisfied by THEIR chain and would stay green with remove.selected's own
+# chain call deleted. Measured, not assumed.
+chains_reset
+select_file "$text_pdf"
+run_with_list PDFUtil.remove.selected
+check "one file remains"            "1"            "$(file_count)"
+check "and it is the other one"     "$photo_png"   "$(file_list)"
+check "the pane was told to resync" "1"            "$(chain_requested PDFUtil.files.selection.changed)"
+
+# --------------------------------------------------------------------------
+section "remove with nothing selected removes nothing"
+# --------------------------------------------------------------------------
+clear_selection
+run_with_list PDFUtil.remove.selected
+check "the list is unchanged" "1" "$(file_count)"
+
+# --------------------------------------------------------------------------
+section "clear all empties the list and resets the buttons"
+# --------------------------------------------------------------------------
+reset_document
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check "one file before clearing" "1" "$(file_count)"
+
+run_with_list PDFUtil.clear.all
+check "the list is empty"    "0" "$(file_count)"
+check "the table was emptied by the dedicated verb" "1" \
+    "$(ui_calls "omc_table_remove_all_rows")"
+
+# Clearing chains the selection handler, which is what actually disables the
+# buttons. Draining the chain is how the test sees the whole user-visible
+# effect rather than only the first half of it.
+clear_selection
+sync_file_list
+omc_drain_chain
+check "Remove went dead"  "0" "$(ui_enabled "$REMOVE_BUTTON_ID")"
+check "Reveal went dead"  "0" "$(ui_enabled "$REVEAL_BUTTON_ID")"
+check "Quick Look went dead" "0" "$(ui_enabled "$PREVIEW_BUTTON_ID")"
+check "Info went dead"    "0" "$(ui_enabled "$INFO_BUTTON_ID")"
+
+# --------------------------------------------------------------------------
+section "selecting a file that has since been deleted"
+# --------------------------------------------------------------------------
+reset_document
+ghost="$OMCTEST_WORK/ghost.pdf"
+/bin/cp "$text_pdf" "$ghost"
+omc_dialog_answer choose_object "$ghost"
+run_with_list PDFUtil.add.files
+check "it is listed" "1" "$(file_count)"
+
+/bin/rm -f "$ghost"
+select_file "$ghost"
+run_with_list PDFUtil.files.selection.changed
+check "the summary says the file is gone" "yes" \
+    "$(contains "$(summary)" "no longer exists")"
+# The buttons stay live on purpose: Remove is the one action that still makes
+# sense for a row pointing at nothing.
+check "Remove is still offered" "1" "$(ui_enabled "$REMOVE_BUTTON_ID")"
+
+# --------------------------------------------------------------------------
+section "a password-protected pdf is explained, not reported as blank"
+# --------------------------------------------------------------------------
+reset_document
+locked="$(fixture locked.pdf)"
+omc_dialog_answer choose_object "$locked"
+run_with_list PDFUtil.add.files
+select_file "$locked"
+run_with_list PDFUtil.files.selection.changed
+check "the summary says it is protected" "yes" \
+    "$(contains "$(summary)" "password-protected")"
+check "and names the way out"            "yes" \
+    "$(contains "$(summary)" "Remove Password")"
+
+# --------------------------------------------------------------------------
+section "the engine only gets variables the manifest actually declares"
+# --------------------------------------------------------------------------
+# The harness is more generous than the engine: it exports whatever a test sets,
+# while the engine exports a scanned variable only where the command definition
+# asks for it. So a handler reading the whole file list from a command that
+# never declares it passes here and comes up empty in the shipped app. This
+# compares the two lists rather than trusting either.
+readers=$(handlers_reading_file_list)
+check "some handler reads the whole list" "yes" \
+    "$([ -n "$readers" ] && echo yes || echo no)"
+# Indirect readers are the majority here, so if they are missing from the list
+# the cross-check below is only inspecting a handful of files.
+check "and the indirect readers were found too" "yes" \
+    "$(contains "$readers" "PDFUtil.run.single")"
+
+declarers=$(/usr/bin/python3 - "$OMC_APP_BUNDLE_PATH/Contents/Resources/Command.json" \
+                               "OMC_ACTIONUI_TABLE_${TABLE_ID}_COLUMN_${TABLE_PATH_COLUMN}_ALL_ROWS" <<'PY'
+import json, sys
+manifest, wanted = sys.argv[1], sys.argv[2]
+doc = json.load(open(manifest))
+for command in doc.get("COMMAND_LIST", []):
+    if wanted in (command.get("ENVIRONMENT_VARIABLES") or {}):
+        print(command.get("COMMAND_ID", ""))
+PY
+)
+check "the manifest declares it somewhere" "yes" \
+    "$([ -n "$declarers" ] && echo yes || echo no)"
+
+undeclared=""
+for _reader in $readers; do
+    case "
+$declarers
+" in
+        *"
+$_reader
+"*) ;;
+        *) undeclared="$undeclared $_reader" ;;
+    esac
+done
+check "every handler that reads the list is given it by the manifest" "" "$undeclared"
+
+# --------------------------------------------------------------------------
+section "cumulative: no handler wrote to a view id the window does not declare"
+# --------------------------------------------------------------------------
+check "no undeclared ids" "" "$(ui_unknown_writes)"
+check "no bare value write clobbered a table's rows" "" "$(ui_suspect_writes)"
+check "the harness detected no misuse" "" "$(ui_errors)"
+check "the id set was extracted" "yes" \
+    "$([ -s "$OMCTEST_UI/known_ids.txt" ] && echo yes || echo no)"
+
+omctest_end

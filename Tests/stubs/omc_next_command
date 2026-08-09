@@ -1,5 +1,0 @@
-#!/bin/sh
-# Stand-in for OMC's command chaining. Records the COMMAND_ID that would have run
-# next, which is how the router tests observe where an operation was sent.
-printf '%s\n' "$2" >> "$OMC_TEST_LOG/next.log"
-exit 0
