@@ -189,6 +189,34 @@ omc_control "$RED_MAXEDGE_ON_ID" true
 omc_control "$RED_MAXEDGE_PX_ID" 2000
 check "edge cap on sends its pixel count" "2000" "$(pdfutil_arg_after reduce -m)"
 
+# --------------------------------------------------------------------------
+section "an UNSET box in Reduce means its declared isOn, which is not always off"
+# --------------------------------------------------------------------------
+# Neither of the two states above, and the one that shipped broken. OMC exports
+# a Toggle's value once it has a value to report; until then
+# the variable is absent, and absent means the toggle's declared isOn - not off.
+# reset_document seeds every control from the JSON defaults, so nothing else in
+# this suite ever sees a control the way a freshly opened window does, which is
+# exactly how a first Reduce run came to send -r 0 while the panel displayed a
+# checked box at 150.
+#
+# The two toggles need opposite spellings and only one of them is forgiving:
+# 78 declares isOn: false, so `= "true"` reads unset correctly by luck, while 76
+# declares isOn: true and must be tested as `!= "false"`. Both are asserted here
+# so a future edit that unifies them on the wrong spelling fails.
+# 200, not the 150 this field defaults to: clamp_dpi falls back to 150 when the
+# field's value is missing, so asserting 150 here would pass whether the field
+# was read or thrown away. A non-default value makes the check prove both that
+# the toggle was read as on AND that the DPI the user typed is what gets sent.
+reset_document
+unset "OMC_ACTIONUI_VIEW_${RED_DOWNSAMPLE_ID}_VALUE"
+omc_control "$RED_DPI_ID" 200
+check "an unset downsample toggle is on, its declared state" "200" "$(pdfutil_arg_after reduce -r)"
+
+reset_document
+unset "OMC_ACTIONUI_VIEW_${RED_MAXEDGE_ON_ID}_VALUE"
+check "an unset edge-cap toggle is off, its declared state" "0" "$(pdfutil_arg_after reduce -m)"
+
 # OCR: --searchable covers the whole document and picks its own parameters.
 reset_document
 omc_control "$OCR_SEARCHABLE_ID" true

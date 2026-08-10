@@ -355,7 +355,14 @@ build_pdfutil_args() {
             # explicitly in both cases keeps the toggle honest: pdfutil's own
             # default is 150, so omitting -r when the toggle is off would
             # downsample anyway.
-            if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
+            #
+            # Tested for != "false" rather than = "true" because this toggle
+            # declares isOn: true, and unset is its declared state. Reading
+            # unset as off would send -r 0 on a run where the panel is showing
+            # the box checked at 150, silently skipping the downsampling that
+            # is the operation's main size lever. Toggle 78 below is safe with
+            # = "true" because it declares isOn: false, so unset and off agree.
+            if [ "$OMC_ACTIONUI_VIEW_76_VALUE" != "false" ]; then
                 PDFUTIL_ARGS+=(-r "$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)")
             else
                 PDFUTIL_ARGS+=(-r 0)

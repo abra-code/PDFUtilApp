@@ -32,7 +32,7 @@ Nineteen operations, in the six groups the Operation menu uses.
 
 | Operation | What it does |
 |---|---|
-| **Reduce File Size** | Recompress and downsample images through the macOS Quartz image filter. JPEG quality (default 85) and a DPI ceiling (default 150), plus an optional cap on the longest image edge. The DPI value is a ceiling, so images already below it are untouched and nothing is upscaled. Leaving the edge cap unchecked falls back to pdfutil's own default of 2400 pixels rather than to no cap at all. |
+| **Reduce File Size** | Recompress and downsample images through the macOS Quartz image filter. JPEG quality (default 85) and a DPI ceiling (default 150), plus an optional cap on the longest image edge, off by default. The DPI value is a ceiling, so images already below it are not downsampled and nothing is upscaled. Both toggles send their disabled value explicitly (`-r 0`, `-m 0`) rather than omitting the flag, because pdfutil's own defaults are 150 and 2400: an unchecked box that still capped would be lying. Reduce never grows a file, so when the rewrite comes out larger the original is kept byte for byte, structure included. |
 | **Convert to Grayscale** | Convert every page to shades of gray using the system Gray Tone filter. |
 | **Linearize (fast web view)** | Rewrite the file so a viewer can show the first page before the rest has downloaded. |
 | **Convert to PDF/A** | Rewrite the document in archival form, embedding its fonts. Apple's writer does not verify conformance, so the app says so rather than claiming it. |
@@ -46,7 +46,7 @@ Nineteen operations, in the six groups the Operation menu uses.
 | **Rotate** | Rotate a page range by 90, 180, 270, or -90 degrees. Rotation is added to the page's current rotation, not set. |
 | **Crop** | Change a page box (crop, media, art, bleed, or trim) either by insetting margins or by an absolute rectangle. |
 | **Split** | Split into parts of N pages each, or one part per top-level outline chapter. |
-| **Merge** | Join every PDF in the list into one document, in list order. |
+| **Merge** | Join every PDF in the list into one document, in the list's order. The list is sorted by file name and cannot be reordered by hand yet, so that is the merge order. |
 
 ### Content
 
@@ -75,7 +75,7 @@ Nineteen operations, in the six groups the Operation menu uses.
 
 | Operation | What it does |
 |---|---|
-| **Build PDF from Images** | Turn every image in the list into a page, in list order. Page size is fitted to a standard paper size by default, or can be taken from each image's own DPI, or computed from a DPI you supply. An animated GIF or multi-page TIFF contributes one page per frame. |
+| **Build PDF from Images** | Turn every image in the list into a page, in the list's name order. Page size is fitted to a standard paper size by default, or can be taken from each image's own DPI, or computed from a DPI you supply. An animated GIF or multi-page TIFF contributes one page per frame. |
 
 Selecting a file and pressing the inspector button reports the file's details, `pdfutil info`, and the document outline when it has one.
 
@@ -102,13 +102,18 @@ The table below covers the seventeen operations that produce a PDF. It was check
 | Split, Merge | Page-level structure kept, outline not carried across parts or merged |
 | Flatten | Outline kept; fields and annotations are painted in and removed by design |
 | OCR (searchable) | Preserved |
-| Rotate, Crop | Lossless: only page boxes and rotation change |
+| Rotate, Crop | Preserved: only page boxes and rotation change |
 | Set Password, Remove Password, Edit Metadata | Preserved |
+
+Two qualifications the table cannot carry in a cell:
+
+- **Reduce is decided per file at run time.** When the rewrite would come out larger than the input, pdfutil discards it and keeps the original byte for byte, so the outline, annotations, and form fields survive. The pre-flight alert has to warn before knowing which way that will go, so it warns.
+- **The row above is about page structure, not the Info dictionary.** No operation preserves Producer or the dates; see below.
 
 Two behaviors inherited from PDFKit are worth knowing about, both measured rather than assumed:
 
-- **Permission reporting is advisory.** PDFKit's `accessPermissions` conflates the two print bits, so a file that denies high-resolution printing is still reported as allowing it.
-- **Editing metadata cannot preserve Producer or the dates.** PDFKit's writer resets them on every save, whatever you asked for.
+- **Permission reporting is advisory.** Reading a file back, PDFKit's `accessPermissions` over-reports in both directions along the printing and changes axes: a file that denies high-resolution printing is reported as allowing it; one that allows only form filling or only page assembly is reported as allowing document changes; and one that allows changes while denying page assembly is reported as allowing assembly. Only the copying ladder reads back faithfully. The inspector shows what PDFKit says, so trust what you set in the Set Password panel over what you read back.
+- **No operation preserves Producer or the dates.** PDFKit's writer resets them on every save, whatever you asked for. This is not specific to Edit Metadata; it applies to all seventeen operations that write a PDF, Rotate and Crop included. The one exception is a file Reduce declined to rewrite, which is returned untouched.
 
 ---
 
@@ -124,7 +129,7 @@ Three limits are the format's or the engine's, not the app's, and the Set Passwo
 - **Passwords must be ASCII**, and only their first 32 characters are stored by the R4 handler. The app checks for non-ASCII before asking you where to save, because the raw failure names no cause.
 - **A password you cannot open the document with is unrecoverable**, so both password fields are typed twice and a mismatch refuses to run. Remove Password needs no confirmation, since it is checked against the file.
 
-Permission flags are implication ladders rather than eight independent switches: `high-quality-printing` implies `printing`, `copying` implies `accessibility`, and `changes` implies `commenting` implies `forms`. The UI is therefore three menus and a toggle, which can express every distinct file the format allows, instead of eight checkboxes whose combinations collapse onto each other.
+Permission flags are implication ladders rather than eight independent switches: `high-quality-printing` implies `printing`, `copying` implies `accessibility`, and `changes` implies `commenting` implies `forms`. The UI is therefore three menus and a toggle, which express every combination the engine can write, instead of eight checkboxes whose combinations collapse onto each other. The ladders belong to the engine, not to the app, so a handful of sets the format allows in principle, copying without accessibility extraction among them, are unreachable from either.
 
 ---
 

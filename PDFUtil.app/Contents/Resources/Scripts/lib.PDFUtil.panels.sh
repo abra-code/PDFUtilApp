@@ -34,7 +34,7 @@ structure_notice() {
             echo "Extracts an existing text layer. Scans have none - use OCR for those."
             ;;
         ocr)
-            echo "Reads pages as pictures, so recognition is never perfect. The searchable-PDF mode uses a different engine and ignores the settings above."
+            echo "Reads pages as pictures, so recognition is never perfect. The searchable-PDF mode uses a different engine, so the settings above do not apply to it."
             ;;
         encrypt)
             echo "128-bit AES, ASCII passwords, first 32 characters only. QuickPDF does 256-bit. Permissions bind only readers who open with the user password."
