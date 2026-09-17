@@ -21,8 +21,8 @@ if [ -n "$selected_path" ]; then
     done <<< "$all_paths"
 
     if [ -n "$buffer" ]; then
-        printf "%s" "$buffer" | /usr/bin/sort -u -t'	' -k2,2 -k3,3 \
-            | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
+        # Not sorted: the rest of the list keeps the order the user gave it.
+        printf "%s" "$buffer" | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
     else
         "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
     fi

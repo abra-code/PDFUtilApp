@@ -43,7 +43,8 @@ omctest_import_view_ids "$APP_SCRIPTS/lib.PDFUtil.sh"
 # omc_control writes OMC_ACTIONUI_VIEW__VALUE, and the file fails check by check
 # with no hint why. With it, it fails once and says which name went missing.
 for _required in TABLE_ID SUMMARY_VIEW_ID TABLE_PATH_COLUMN OPERATION_PICKER_ID \
-                 RUN_BUTTON_ID REMOVE_BUTTON_ID GROUP_REDUCE_ID GROUP_PLACEHOLDER_ID; do
+                 RUN_BUTTON_ID REMOVE_BUTTON_ID GROUP_REDUCE_ID GROUP_PLACEHOLDER_ID \
+                 MOVE_UP_BUTTON_ID MOVE_DOWN_BUTTON_ID; do
     eval "_value=\${$_required}"
     if [ -z "$_value" ]; then
         printf 'lib.test.pdfutil: %s did not import from lib.PDFUtil.sh\n' "$_required" >&2

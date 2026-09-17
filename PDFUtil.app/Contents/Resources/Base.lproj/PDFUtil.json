@@ -11,7 +11,7 @@
     "type": "VStack",
     "properties": {
       "spacing": 8,
-      "navigationSplitViewColumnWidth": { "min": 240, "ideal": 300, "max": 380 }
+      "navigationSplitViewColumnWidth": { "min": 280, "ideal": 300, "max": 380 }
     },
     "children": [
       {
@@ -58,6 +58,32 @@
               "disabled": true,
               "frame": { "width": 32, "height": 32 },
               "help": "Remove the selected file from the list"
+            }
+          },
+          {
+            "type": "Button",
+            "id": 107,
+            "properties": {
+              "systemImage": "arrow.up",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.move.selected.up",
+              "disabled": true,
+              "frame": { "width": 28, "height": 32 },
+              "help": "Move the selected file up. Merge and Build PDF from Images use the list order."
+            }
+          },
+          {
+            "type": "Button",
+            "id": 108,
+            "properties": {
+              "systemImage": "arrow.down",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "PDFUtil.move.selected.down",
+              "disabled": true,
+              "frame": { "width": 28, "height": 32 },
+              "help": "Move the selected file down. Merge and Build PDF from Images use the list order."
             }
           },
           {

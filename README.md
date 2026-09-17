@@ -46,7 +46,7 @@ Nineteen operations, in the six groups the Operation menu uses.
 | **Rotate** | Rotate a page range by 90, 180, 270, or -90 degrees. Rotation is added to the page's current rotation, not set. |
 | **Crop** | Change a page box (crop, media, art, bleed, or trim) either by insetting margins or by an absolute rectangle. |
 | **Split** | Split into parts of N pages each, or one part per top-level outline chapter. |
-| **Merge** | Join every PDF in the list into one document, in the list's order. The list is sorted by file name and cannot be reordered by hand yet, so that is the merge order. |
+| **Merge** | Join every PDF in the list into one document, in the list's order. New files are added at the end of the list, sorted by name among themselves, and the Up and Down buttons under the list move the selected file. |
 
 ### Content
 
@@ -75,7 +75,7 @@ Nineteen operations, in the six groups the Operation menu uses.
 
 | Operation | What it does |
 |---|---|
-| **Build PDF from Images** | Turn every image in the list into a page, in the list's name order. Page size is fitted to a standard paper size by default, or can be taken from each image's own DPI, or computed from a DPI you supply. An animated GIF or multi-page TIFF contributes one page per frame. |
+| **Build PDF from Images** | Turn every image in the list into a page, in the list's order. Page size is fitted to a standard paper size by default, or can be taken from each image's own DPI, or computed from a DPI you supply. An animated GIF or multi-page TIFF contributes one page per frame. |
 
 Selecting a file and pressing the inspector button reports the file's details, `pdfutil info`, and the document outline when it has one.
 

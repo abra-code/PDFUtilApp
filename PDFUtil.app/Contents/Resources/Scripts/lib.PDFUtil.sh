@@ -41,6 +41,8 @@ CLEAR_BUTTON_ID=103
 REVEAL_BUTTON_ID=104
 PREVIEW_BUTTON_ID=105
 INFO_BUTTON_ID=106
+MOVE_UP_BUTTON_ID=107
+MOVE_DOWN_BUTTON_ID=108
 
 # Passwords belong to Set Password and Remove Password and nowhere else.
 #
