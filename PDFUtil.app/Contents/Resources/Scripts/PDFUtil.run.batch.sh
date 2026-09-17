@@ -162,9 +162,11 @@ FAILED ${filename}: $(first_error_line "$output")"
         # Three-or-more digits: pdfutil's %03d is a minimum width, so a document
         # long enough to need part 1000 writes -1000.pdf.
         part_count=0
+        first_part=""
         for part in "$subdir/$stem"-[0-9][0-9][0-9]*.pdf; do
             [ -e "$part" ] || continue
             part_count=$((part_count + 1))
+            [ -z "$first_part" ] && first_part="$part"
         done
 
         if [ "$part_count" -eq 0 ]; then
@@ -174,8 +176,11 @@ FAILED ${filename}: $(first_error_line "$output")"
 FAILED ${filename}: pdfutil wrote no parts"
         else
             success_count=$((success_count + 1))
+            part_note=""
+            [ -n "$first_part" ] && part_note="$(restrictions_note "$file_path" "$first_part")"
             details="${details}
-OK ${filename}: ${part_count} part(s) -> $(/usr/bin/basename "$subdir")/"
+OK ${filename}: ${part_count} part(s) -> $(/usr/bin/basename "$subdir")/${part_note:+
+   Note: $part_note}"
         fi
         continue
     fi
@@ -229,8 +234,13 @@ FAILED ${filename}: could not write ${output_name}"
     orig_size="$(/usr/bin/stat -f %z "$file_path" 2>/dev/null)"
     new_size="$(/usr/bin/stat -f %z "$output_file" 2>/dev/null)"
     success_count=$((success_count + 1))
+    file_note=""
+    if [ "$PDFUTIL_OUTPUT_KIND" = "pdf" ]; then
+        file_note="$(restrictions_note "$file_path" "$output_file")"
+    fi
     details="${details}
-OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")${rename_note}"
+OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")${rename_note}${file_note:+
+   Note: $file_note}"
 done
 
 set_summary "Operation: $(operation_label "$operation")

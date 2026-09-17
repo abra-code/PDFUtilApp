@@ -270,6 +270,71 @@ unique_render_prefix() {
     echo "${candidate}${suffix}"
 }
 
+# Return 0 when a file carries PDF encryption. The /Encrypt entry sits in the
+# trailer or a cross-reference stream's dictionary, and neither is ever
+# compressed or encrypted, so a byte search finds it without parsing - cheap
+# enough for every file of a batch. It can only err toward yes (those bytes in
+# some uncompressed page content), which suppresses a note rather than adding one.
+# Arguments: path
+file_has_encryption() {
+    LC_ALL=C /usr/bin/grep -a -q '/Encrypt' "$1"
+}
+
+# Echo a sentence for the summary when a PDF that opened without a password was
+# saved as a copy without its creator's restrictions, or "" otherwise.
+#
+# A notice, never a refusal. Anyone can already open such a PDF, and its
+# restrictions matter mostly to whoever made it; the user deserves to know, not
+# to be stopped. Whether a copy keeps them depends on the operation and on
+# PDFKit - it re-saves 128-bit encryption but not 40-bit RC4 or 256-bit AES, and
+# a new document or a redraw keeps none - so this looks at what was written
+# rather than predicting it. Remove Password is exempt: dropping them is its job.
+# Arguments: input, written PDF
+restrictions_note() {
+    [ "$(current_operation)" = "decrypt" ] && return 0
+    file_has_encryption "$1"
+    local input_encrypted=$?
+    [ "$input_encrypted" -eq 0 ] || return 0
+    file_has_encryption "$2"
+    local output_encrypted=$?
+    [ "$output_encrypted" -ne 0 ] || return 0
+    [ "$(pdf_protection "$1")" = "restricted" ] || return 0
+    local words="$(restriction_words "$(pdf_permission_flags "$1")")"
+    if [ -n "$words" ]; then
+        echo "The original did not allow ${words}; this copy has no such restrictions."
+    else
+        echo "The original was encrypted; this copy is not."
+    fi
+}
+
+# Echo a sentence for the summary when some of several inputs had restrictions
+# and the single PDF built from them has none, or "" otherwise. Merge and Build
+# PDF from Images always write a new, unencrypted document.
+# Arguments: written PDF, input paths...
+inputs_restrictions_note() {
+    local written="$1"
+    shift
+    file_has_encryption "$written"
+    local written_encrypted=$?
+    [ "$written_encrypted" -ne 0 ] || return 0
+    local count=0
+    local first=""
+    local input input_encrypted
+    for input in "$@"; do
+        file_has_encryption "$input"
+        input_encrypted=$?
+        [ "$input_encrypted" -eq 0 ] || continue
+        [ "$(pdf_protection "$input")" = "restricted" ] || continue
+        count=$((count + 1))
+        [ -z "$first" ] && first="$(/usr/bin/basename "$input")"
+    done
+    if [ "$count" -eq 1 ]; then
+        echo "\"${first}\" had restrictions set by its creator; the result has none."
+    elif [ "$count" -gt 1 ]; then
+        echo "${count} of the files had restrictions set by their creators, starting with \"${first}\"; the result has none."
+    fi
+}
+
 # Shared body of the three Save As runners - PDFUtil.run.single (PDF),
 # PDFUtil.run.text (.txt) and PDFUtil.run.image (one rendered page). They differ
 # only in the Save panel's default file name, which is declared per command in
@@ -396,6 +461,13 @@ Output: ${first_part} and $((moved - 1)) more"
     local orig_size="$(/usr/bin/stat -f %z "$input_file" 2>/dev/null)"
     local new_size="$(/usr/bin/stat -f %z "$output_file" 2>/dev/null)"
 
+    local note=""
+    if [ "$PDFUTIL_OUTPUT_KIND" = "pdf" ]; then
+        note="$(restrictions_note "$input_file" "$output_file")"
+    fi
+
     set_summary "OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")
-Output: $output_file"
+Output: $output_file${note:+
+
+Note: $note}"
 }

@@ -138,8 +138,12 @@ page_count="$(pdf_page_count "$output_file")"
 # The page count is worth stating rather than echoing the input count: a
 # multi-frame GIF or TIFF contributes one page per frame, so "6 files ->
 # 11 pages" is the only place that behavior becomes visible.
+inputs_note="$(inputs_restrictions_note "$output_file" "${inputs[@]}")"
+
 set_summary "Operation: $(operation_label "$operation")
 Built $(/usr/bin/basename "$output_file") from ${#inputs[@]} file(s)
 ${page_count} page(s), $(format_size "$built_size")
 
-$(structure_notice "$operation")"
+$(structure_notice "$operation")${inputs_note:+
+
+Note: $inputs_note}"

@@ -131,8 +131,12 @@ merged_size="$(/usr/bin/stat -f %z "$output_file" 2>/dev/null)"
 page_count="$(pdf_page_count "$output_file")"
 [ -z "$page_count" ] && page_count="?"
 
+inputs_note="$(inputs_restrictions_note "$output_file" "${inputs[@]}")"
+
 set_summary "Operation: $(operation_label "$operation")
 Merged ${#inputs[@]} files -> $(/usr/bin/basename "$output_file")
 ${page_count} page(s), $(format_size "$merged_size")
 
-$(structure_notice "$operation")"
+$(structure_notice "$operation")${inputs_note:+
+
+Note: $inputs_note}"

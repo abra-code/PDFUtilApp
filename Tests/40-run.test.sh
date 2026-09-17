@@ -20,6 +20,7 @@ check_preconditions
 
 text_pdf="$(fixture text.pdf)"
 photo_png="$(fixture photo.png)"
+restricted_pdf="$(fixture restricted.pdf)"
 
 seed_list() { # <path ...>
     local rows=""
@@ -278,6 +279,94 @@ check "both files were written" "2" \
 check "the summary counts them" "yes" "$(contains "$(summary)" "2")"
 check "no staging file survived in the destination" "0" \
     "$(/usr/bin/find "$dest" -maxdepth 1 -name '.pdfutil.*' | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
+
+# --------------------------------------------------------------------------
+section "a copy that drops an open-freely pdf's restrictions says so"
+# --------------------------------------------------------------------------
+# restricted.pdf opens without a password; its owner password forbids page
+# changes, editing, comments and form filling. Nothing is refused over it - the
+# summary just says when the saved copy no longer carries the restrictions.
+restricted_words="removing or rotating pages, editing, adding comments and filling in forms"
+
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" extract
+omc_control "$EXT_RANGE_ID" "1-2"
+extracted="$OMCTEST_WORK/restricted-extract.pdf"
+omc_dialog_answer save_as "$extracted"
+run_with_list PDFUtil.run.single
+check_exists "extract wrote a copy" "$extracted"
+check "the copy is not encrypted" "not encrypted" \
+    "$(pdfutil_call file_has_encryption "$extracted" && echo encrypted || echo "not encrypted")"
+check "and the summary says what the original did not allow" "yes" \
+    "$(contains "$(summary)" "Note: The original did not allow ${restricted_words}; this copy has no such restrictions.")"
+
+# PDFKit re-saves 128-bit encryption, so a crop keeps the restrictions and there
+# is nothing to say.
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" crop
+omc_control "$CROP_VALUES_ID" "10,10,10,10"
+cropped="$OMCTEST_WORK/restricted-crop.pdf"
+omc_dialog_answer save_as "$cropped"
+run_with_list PDFUtil.run.single
+check_exists "crop wrote a copy" "$cropped"
+check "the crop kept the encryption" "encrypted" \
+    "$(pdfutil_call file_has_encryption "$cropped" && echo encrypted || echo "not encrypted")"
+check "so there is no note" "no" "$(contains "$(summary)" "Note:")"
+
+# A plain pdf gets no note either.
+reset_document
+seed_list "$text_pdf"
+omc_control "$OPERATION_PICKER_ID" extract
+omc_control "$EXT_RANGE_ID" "1"
+omc_dialog_answer save_as "$OMCTEST_WORK/plain-extract.pdf"
+run_with_list PDFUtil.run.single
+check "a plain pdf's copy has no note" "no" "$(contains "$(summary)" "Note:")"
+
+# Remove Password drops the restrictions by design, so it does not remark on it.
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" decrypt
+unrestricted="$OMCTEST_WORK/restricted-decrypt.pdf"
+omc_dialog_answer save_as "$unrestricted"
+run_with_list PDFUtil.run.single
+check_exists "remove password wrote a copy" "$unrestricted"
+check "with no note" "no" "$(contains "$(summary)" "Note:")"
+
+# A batch notes it per file, and only for the file it applies to.
+reset_document
+dest="$OMCTEST_WORK/restricted-batch"
+/bin/mkdir -p "$dest"
+seed_list "$restricted_pdf" "$text_pdf"
+omc_control "$OPERATION_PICKER_ID" extract
+omc_control "$EXT_RANGE_ID" "1"
+omc_dialog_answer choose_folder "$dest"
+run_with_list PDFUtil.run.batch
+check "the batch notes the restricted file" "yes" \
+    "$(contains "$(summary)" "OK restricted.pdf: ")"
+check "one note, for one file" "1" \
+    "$(summary | /usr/bin/grep -c "Note: The original did not allow")"
+
+# Split writes parts into a folder; the note is judged from the first part.
+reset_document
+dest="$OMCTEST_WORK/restricted-split"
+/bin/mkdir -p "$dest"
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" split
+omc_dialog_answer choose_folder "$dest"
+run_with_list PDFUtil.run.batch
+check "split notes it too" "1" \
+    "$(summary | /usr/bin/grep -c "Note: The original did not allow")"
+
+# Merge names the restricted input.
+reset_document
+seed_list "$text_pdf" "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" merge
+omc_dialog_answer save_as "$OMCTEST_WORK/restricted-merge.pdf"
+run_with_list PDFUtil.run.merge
+check "merge names the restricted input" "yes" \
+    "$(contains "$(summary)" "Note: \"restricted.pdf\" had restrictions set by its creator; the result has none.")"
 
 # --------------------------------------------------------------------------
 section "cumulative: no handler wrote to a view id the window does not declare"
