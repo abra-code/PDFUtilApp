@@ -214,8 +214,22 @@ This PDF could not be read."
 
     local pages="$(printf '%s\n' "$info" | /usr/bin/awk -F': ' '$1 == "pages" { print $2; exit }')"
     local encrypted="$(printf '%s\n' "$info" | /usr/bin/awk -F': ' '$1 == "encrypted" { print $2; exit }')"
+    local protection=""
     case "$encrypted" in
-        true)  encrypted="Yes" ;;
+        true)
+            # `info` succeeded without a password, so this PDF opens freely and
+            # any protection is an owner password's restrictions. Say what they
+            # are, and that removing them needs no password - nobody can be
+            # expected to know the PDF has an empty user password.
+            local flags="$(printf '%s\n' "$info" | /usr/bin/awk -F': ' '$1 == "permissions" { print $2; exit }')"
+            local words="$(restriction_words "$flags")"
+            encrypted="Yes, but it opens without a password"
+            if [ -n "$words" ]; then
+                protection="
+Does not allow: ${words}
+Remove Password removes these restrictions; no password is needed."
+            fi
+            ;;
         false) encrypted="No" ;;
         *)     encrypted="?" ;;
     esac
@@ -223,7 +237,7 @@ This PDF could not be read."
     set_summary "$(/usr/bin/basename "$selected_path")
 Size: $(format_size "$size")
 Pages: ${pages:-?}
-Encrypted: $encrypted"
+Encrypted: ${encrypted}${protection}"
 }
 
 # Called by the add handlers right after add_files_to_table. If files were just

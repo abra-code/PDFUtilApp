@@ -2,7 +2,9 @@
 # PDFUtil.clear.all.sh - Clear all files from the table
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
+refresh_decrypt_panel ""
 
 "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.files.selection.changed"

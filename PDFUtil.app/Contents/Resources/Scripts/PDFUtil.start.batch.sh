@@ -80,6 +80,25 @@ operation_redraws() {
     return 1
 }
 
+# Echo the permission flag an operation needs from a PDF that opens without a
+# password, or "" when it needs none. The flags are the ones pdfutil checks
+# before editing (PDFKit skips a refused edit silently, so pdfutil refuses it
+# instead); asking here means the user hears it before choosing a destination.
+# Arguments: operation tag
+operation_permission() {
+    case "$1" in
+        delete | rotate) echo "assembly" ;;
+        metadata)        echo "changes" ;;
+        watermark)
+            # Only annotation mode edits the document through PDFKit; burn-in
+            # draws a new one.
+            if [ "$OMC_ACTIONUI_VIEW_166_VALUE" = "true" ]; then
+                echo "commenting"
+            fi
+            ;;
+    esac
+}
+
 # Echo why the list's file types do not suit the operation, or "" when they do.
 #
 # Build PDF from Images is the only operation that reads pictures; every other
@@ -144,13 +163,6 @@ Remove them from the list and try again."
 settings_problem() {
     case "$1" in
         encrypt) encrypt_settings_problem ;;
-        decrypt)
-            if [ -z "$OMC_ACTIONUI_VIEW_122_VALUE" ]; then
-                echo "Enter the password that opens these PDFs.
-
-pdfutil treats an empty password as a usage error rather than as a blank password."
-            fi
-            ;;
         extract)
             if [ -z "$(trim_spaces "$OMC_ACTIONUI_VIEW_140_VALUE")" ]; then
                 echo "Enter the pages to keep, for example 1-5,8 or 3,1,2 to reorder."
@@ -500,6 +512,9 @@ other_count=0
 other_name=""
 locked_count=0
 locked_name=""
+restricted_count=0
+restricted_name=""
+protected_count=0
 first_file=""
 risk_count=0
 risk_name=""
@@ -511,6 +526,8 @@ redraws=0
 if operation_redraws "$operation"; then
     redraws=1
 fi
+required_permission="$(operation_permission "$operation")"
+decrypt_password="$OMC_ACTIONUI_VIEW_122_VALUE"
 
 while IFS= read -r file_path; do
     [ -z "$file_path" ] && continue
@@ -531,12 +548,39 @@ while IFS= read -r file_path; do
 
     # The password and structure checks only mean anything for a PDF.
     if [ "$file_kind" = "pdf" ]; then
-        if [ "$operation" != "decrypt" ] && pdf_is_locked "$file_path"; then
-            # Remove Password is exempt: a locked file is precisely its input,
-            # and the test is skipped rather than counted-and-ignored so it does
-            # not pay for an `info` call per file it already knows the answer for.
+        if [ "$operation" = "decrypt" ]; then
+            # Remove Password takes locked files, but only with their password,
+            # and needs none for a PDF that opens without one. It is also the
+            # only operation with nothing to do on an unprotected PDF.
+            file_protection="$(pdf_protection "$file_path")"
+            case "$file_protection" in
+                locked)
+                    protected_count=$((protected_count + 1))
+                    if [ -z "$decrypt_password" ]; then
+                        locked_count=$((locked_count + 1))
+                        [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
+                    fi
+                    ;;
+                restricted | "")
+                    # An unreadable file counts as protected so the run reaches
+                    # pdfutil's own error for it.
+                    protected_count=$((protected_count + 1))
+                    ;;
+            esac
+        elif pdf_is_locked "$file_path"; then
             locked_count=$((locked_count + 1))
             [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
+        elif [ -n "$required_permission" ]; then
+            # Free: pdf_is_locked just read this file and cached its `info`.
+            # No operation that needs a permission also redraws, so this branch
+            # never hides the structure check below.
+            file_flags="$(pdf_permission_flags "$file_path")"
+            flags_allow "$file_flags" "$required_permission"
+            file_allowed=$?
+            if [ "$file_allowed" -ne 0 ]; then
+                restricted_count=$((restricted_count + 1))
+                [ -z "$restricted_name" ] && restricted_name="$(/usr/bin/basename "$file_path")"
+            fi
         elif [ "$redraws" = "1" ]; then
             # Free: the guard above just ran `info` on this file and cached it,
             # so this reads that output rather than parsing the document again.
@@ -579,6 +623,44 @@ fi
 # Remove Password is exempt, in the loop above. Set Password is NOT: encrypting
 # an already-protected file means opening it first, and this operation has no
 # field for the password it is already carrying.
+# Remove Password with an empty field is legitimate for PDFs that open without a
+# password, which is the case the field cannot explain on its own. It is refused
+# only for the files that really need one, and those are named.
+if [ "$operation" = "decrypt" ] && [ "$locked_count" -gt 0 ]; then
+    if [ "$locked_count" -eq 1 ]; then
+        locked_desc="\"${locked_name}\" needs the password that opens it"
+    elif [ "$locked_count" -eq "$file_count" ] && [ "$file_count" -eq 2 ]; then
+        locked_desc="both files need the password that opens them"
+    elif [ "$locked_count" -eq "$file_count" ]; then
+        locked_desc="all ${file_count} files need the password that opens them"
+    else
+        locked_desc="${locked_count} of the ${file_count} files need the password that opens them, starting with \"${locked_name}\""
+    fi
+    # Sentence case: the description starts the line here.
+    locked_line="$(printf '%s' "$locked_desc" | /usr/bin/awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }')"
+    set_summary "Remove Password did not run.
+${locked_line}.
+
+Enter the password above. PDFs that open without a password need none."
+    "$alert_tool" --level caution --title "PDFUtil" \
+        "${locked_line}.
+
+Enter it in the Password field. PDFs that open without a password need none."
+    exit 0
+fi
+
+if [ "$operation" = "decrypt" ] && [ "$protected_count" -eq 0 ] && [ "$pdf_count" -gt 0 ]; then
+    if [ "$pdf_count" -eq 1 ]; then
+        unprotected_desc="This PDF is not protected, so there is nothing to remove."
+    else
+        unprotected_desc="None of these PDFs is protected, so there is nothing to remove."
+    fi
+    set_summary "Remove Password did not run.
+${unprotected_desc}"
+    "$alert_tool" --level caution --title "PDFUtil" "${unprotected_desc}"
+    exit 0
+fi
+
 if [ "$locked_count" -gt 0 ]; then
     if [ "$locked_count" -eq 1 ]; then
         locked_desc="\"${locked_name}\" is password-protected"
@@ -595,6 +677,36 @@ Use Remove Password on them first."
         "$(operation_label "$operation") cannot read protected PDFs: ${locked_desc}.
 
 Use Remove Password on them first, then run $(operation_label "$operation") on the unlocked copies."
+    exit 0
+fi
+
+# PDFs that open without a password but whose owner password forbids this edit.
+# pdfutil refuses them too, but only after the user has chosen where the result
+# goes, and nothing on screen says such a PDF is protected at all. The way out
+# needs no password, so the message says that as well.
+if [ "$restricted_count" -gt 0 ]; then
+    restricted_words="$(permission_words "$required_permission")"
+    if [ "$restricted_count" -eq 1 ]; then
+        restricted_desc="\"${restricted_name}\" does not allow ${restricted_words}"
+    elif [ "$restricted_count" -eq "$file_count" ]; then
+        restricted_desc="none of the ${file_count} files allow ${restricted_words}"
+    else
+        restricted_desc="${restricted_count} of the ${file_count} files do not allow ${restricted_words}, starting with \"${restricted_name}\""
+    fi
+    if [ "$restricted_count" -eq 1 ]; then
+        restricted_which="this PDF"
+        restricted_why="It opens without a password, but its protection restricts what can be done with it. Use Remove Password on it first - no password is needed - then run $(operation_label "$operation") on the copy."
+    else
+        restricted_which="these PDFs"
+        restricted_why="They open without a password, but their protection restricts what can be done with them. Use Remove Password on them first - no password is needed - then run $(operation_label "$operation") on the copies."
+    fi
+    set_summary "$(operation_label "$operation") did not run: ${restricted_desc}.
+
+${restricted_why}"
+    "$alert_tool" --level caution --title "PDFUtil" \
+        "$(operation_label "$operation") cannot change ${restricted_which}: ${restricted_desc}.
+
+${restricted_why}"
     exit 0
 fi
 

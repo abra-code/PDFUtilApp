@@ -5,7 +5,9 @@
 # notice text, and the mode toggles that gray out controls their mode cannot use.
 #
 # Sourced by: PDFUtil.init, .operation.changed, every *.mode.changed handler,
-# .render.format.changed, and the many-to-one runners (.run.merge, .run.assemble)
+# .render.format.changed, the many-to-one runners (.run.merge, .run.assemble),
+# and the handlers that change the file list (.add.files, .files.drop,
+# .remove.selected, .clear.all), which refresh the Remove Password notice
 # Requires lib.PDFUtil.sh (tool paths, control IDs, primitives) to be
 # sourced first; every handler that needs this one sources both, in order.
 #
@@ -250,6 +252,91 @@ apply_watermark_mode_state() {
     "$dialog_tool" "$window_uuid" ${WM_CHOOSE_IMAGE_ID} "$state"
     "$dialog_tool" "$window_uuid" ${WM_ROTATION_ID} "$state"
     "$dialog_tool" "$window_uuid" ${WM_UNDER_ID} "$state"
+}
+
+# Describe the listed PDFs' protection in the Remove Password panel, so nobody
+# has to know that a PDF which opens freely can still be protected.
+#
+# A PDF that opens without a password has an empty user password, and its owner
+# password restricts what may be done with it. Removing those restrictions needs
+# no password at all, which is not something a user can guess from a password
+# field; this says it, names what the PDF restricts when there is one, and
+# relabels the field. Files that do need a password are counted and the first
+# is named.
+#
+# Only does the work while Remove Password is the chosen operation: it costs a
+# `pdfutil info` per PDF. Called when that operation is picked and whenever the
+# list changes; moving a file changes nothing here, so the move handlers do not.
+# Arguments: newline-separated paths in the list
+refresh_decrypt_panel() {
+    [ "$(current_operation)" = "decrypt" ] || return 0
+
+    local pdfs=0 locked=0 restricted=0
+    local locked_name="" restricted_path=""
+    local file_path protection
+    while IFS= read -r file_path; do
+        [ -n "$file_path" ] && [ -e "$file_path" ] || continue
+        [ "$(classify_file "$file_path")" = "pdf" ] || continue
+        pdfs=$((pdfs + 1))
+        protection="$(pdf_protection "$file_path")"
+        case "$protection" in
+            locked)
+                locked=$((locked + 1))
+                [ -z "$locked_name" ] && locked_name="$(/usr/bin/basename "$file_path")"
+                ;;
+            restricted)
+                restricted=$((restricted + 1))
+                [ -z "$restricted_path" ] && restricted_path="$file_path"
+                ;;
+        esac
+    done <<< "$1"
+
+    local prompt="the password that opens these PDFs"
+    local notice
+    if [ "$pdfs" -eq 0 ]; then
+        notice="$(structure_notice decrypt)"
+    elif [ "$locked" -gt 0 ]; then
+        if [ "$locked" -eq 1 ]; then
+            notice="\"${locked_name}\" needs the password that opens it."
+        elif [ "$locked" -eq "$pdfs" ] && [ "$pdfs" -eq 2 ]; then
+            notice="Both PDFs need the password that opens them."
+        elif [ "$locked" -eq "$pdfs" ]; then
+            notice="All ${pdfs} PDFs need the password that opens them."
+        else
+            notice="${locked} of the ${pdfs} PDFs need the password that opens them, starting with \"${locked_name}\"."
+        fi
+        if [ "$restricted" -eq 1 ]; then
+            notice="${notice} The other protected PDF opens without a password and needs none."
+        elif [ "$restricted" -gt 1 ]; then
+            notice="${notice} The other protected PDFs open without a password and need none."
+        fi
+        notice="${notice} Saves unlocked copies; the originals are untouched."
+    elif [ "$restricted" -eq 0 ]; then
+        prompt="not needed"
+        if [ "$pdfs" -eq 1 ]; then
+            notice="This PDF is not protected, so there is nothing to remove."
+        else
+            notice="None of these PDFs is protected, so there is nothing to remove."
+        fi
+    else
+        prompt="not needed - these PDFs open without one"
+        [ "$pdfs" -eq 1 ] && prompt="not needed - this PDF opens without one"
+        if [ "$pdfs" -eq 1 ]; then
+            local words="$(restriction_words "$(pdf_permission_flags "$restricted_path")")"
+            if [ -n "$words" ]; then
+                notice="No password needed: this PDF opens without one, but it does not allow ${words}. Saves a copy without these restrictions; the original is untouched."
+            else
+                notice="No password needed: this PDF opens without one. Saves an unencrypted copy; the original is untouched."
+            fi
+        elif [ "$restricted" -eq "$pdfs" ]; then
+            notice="No password needed: these PDFs open without one but restrict what can be done with them. Saves copies without the restrictions; the originals are untouched."
+        else
+            notice="No password needed: the ${restricted} protected PDFs open without one. Saves copies without the restrictions; the originals are untouched."
+        fi
+    fi
+
+    "$dialog_tool" "$window_uuid" ${NOTICE_DECRYPT_ID} "$notice"
+    "$dialog_tool" "$window_uuid" ${DEC_PASSWORD_ID} omc_set_property "prompt" "$prompt"
 }
 
 # Show the settings panel for an operation and fill in its notice text.

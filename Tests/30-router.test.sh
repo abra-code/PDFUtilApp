@@ -18,6 +18,7 @@ text_pdf="$(fixture text.pdf)"
 outline_pdf="$(fixture outline.pdf)"
 photo_png="$(fixture photo.png)"
 locked_pdf="$(fixture locked.pdf)"
+restricted_pdf="$(fixture restricted.pdf)"
 
 # Put files in the list without going through the add handlers - this file is
 # about the router, and a failure in add_files_to_table should fail 20- rather
@@ -159,6 +160,87 @@ omc_control "$OPERATION_PICKER_ID" decrypt
 omc_control "$DEC_PASSWORD_ID" secret
 run_with_list PDFUtil.start.batch
 check "decrypt accepts a locked pdf" "1" "$(chain_requested PDFUtil.run.single)"
+
+# --------------------------------------------------------------------------
+section "Remove Password needs a password only for a PDF that needs one to open"
+# --------------------------------------------------------------------------
+# A PDF that opens without a password has an empty user password; its owner
+# password only restricts it. An empty field is the right request for it.
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" decrypt
+run_with_list PDFUtil.start.batch
+check "an empty field is accepted for a restricted pdf" "1" "$(chain_requested PDFUtil.run.single)"
+check "with no alert" "0" "$(alerts_count)"
+
+# The empty field is refused for a PDF that does need a password, and the
+# refusal names it - before any destination is asked for.
+reset_document
+seed_list "$restricted_pdf" "$locked_pdf"
+omc_control "$OPERATION_PICKER_ID" decrypt
+run_with_list PDFUtil.start.batch
+check "an empty field is refused when a pdf needs a password" "0" "$(chain_asked PDFUtil.run.batch)"
+check "the alert was raised" "1" "$([ "$(alerts_count)" -gt 0 ] && echo 1 || echo 0)"
+check "the summary names the file that needs it" "yes" "$(contains "$(summary)" "\"locked.pdf\" needs the password")"
+check "and says the others need none" "yes" "$(contains "$(summary)" "need none")"
+omc_control "$DEC_PASSWORD_ID" test
+run_with_list PDFUtil.start.batch
+check "with the password it runs" "1" "$(chain_requested PDFUtil.run.batch)"
+
+# Nothing to remove is said before a destination is asked for, too.
+reset_document
+seed_list "$text_pdf"
+omc_control "$OPERATION_PICKER_ID" decrypt
+run_with_list PDFUtil.start.batch
+check "an unprotected pdf is refused" "0" "$(chain_asked PDFUtil.run.single)"
+check "because there is nothing to remove" "yes" "$(contains "$(summary)" "nothing to remove")"
+
+# --------------------------------------------------------------------------
+section "an edit a restricted pdf forbids is refused before a destination is chosen"
+# --------------------------------------------------------------------------
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" delete
+omc_control "$DEL_RANGE_ID" "1"
+run_with_list PDFUtil.start.batch
+check "delete is refused" "0" "$(chain_asked PDFUtil.run.single)"
+check "the alert was raised" "1" "$([ "$(alerts_count)" -gt 0 ] && echo 1 || echo 0)"
+check "the summary says what it does not allow" "yes" \
+    "$(contains "$(summary)" "\"restricted.pdf\" does not allow removing or rotating pages")"
+check "and that no password is needed to fix it" "yes" \
+    "$(contains "$(summary)" "Use Remove Password on it first - no password is needed")"
+
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" metadata
+omc_control "$META_TITLE_ID" "A Title"
+run_with_list PDFUtil.start.batch
+check "edit metadata is refused" "0" "$(chain_asked PDFUtil.run.single)"
+check "for editing" "yes" "$(contains "$(summary)" "does not allow editing")"
+
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" watermark
+omc_control "$WM_TEXT_ID" "DRAFT"
+omc_control "$WM_ANNOTATION_ID" true
+run_with_list PDFUtil.start.batch
+check "an annotation watermark is refused" "0" "$(chain_asked PDFUtil.run.single)"
+check "for adding comments" "yes" "$(contains "$(summary)" "does not allow adding comments")"
+
+# The controls: an edit the PDF allows still runs, and so does a plain PDF.
+reset_document
+seed_list "$restricted_pdf"
+omc_control "$OPERATION_PICKER_ID" crop
+omc_control "$CROP_VALUES_ID" "36,36,36,36"
+run_with_list PDFUtil.start.batch
+check "crop is not restricted" "1" "$(chain_requested PDFUtil.run.single)"
+
+reset_document
+seed_list "$text_pdf"
+omc_control "$OPERATION_PICKER_ID" delete
+omc_control "$DEL_RANGE_ID" "1"
+run_with_list PDFUtil.start.batch
+check "delete runs on a plain pdf" "1" "$(chain_requested PDFUtil.run.single)"
 
 # --------------------------------------------------------------------------
 section "bad settings are refused before the operation is even resolved"

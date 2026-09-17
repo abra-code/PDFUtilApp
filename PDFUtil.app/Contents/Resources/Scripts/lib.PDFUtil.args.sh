@@ -466,8 +466,13 @@ build_pdfutil_args() {
         decrypt)
             PDFUTIL_VERB="decrypt"
             PDFUTIL_OUTPUT_KIND="pdf"
-            PDFUTIL_STDIN_PW="$OMC_ACTIONUI_VIEW_122_VALUE"
-            PDFUTIL_ARGS+=(--password-stdin)
+            # No password is a real request, not a missing one: a PDF that opens
+            # without a password needs none to lose its restrictions, and the
+            # router refuses a list with a PDF that does need one.
+            if [ -n "$OMC_ACTIONUI_VIEW_122_VALUE" ]; then
+                PDFUTIL_STDIN_PW="$OMC_ACTIONUI_VIEW_122_VALUE"
+                PDFUTIL_ARGS+=(--password-stdin)
+            fi
             ;;
 
         extract)

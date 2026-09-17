@@ -3,6 +3,7 @@
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.files.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 plister="$OMC_OMC_SUPPORT_PATH/plister"
 
@@ -22,5 +23,6 @@ if [ -z "$dropped_paths" ]; then
 fi
 
 add_files_to_table "$dropped_paths"
+refresh_decrypt_panel "$LIST_PATHS"
 
 select_first_or_resync

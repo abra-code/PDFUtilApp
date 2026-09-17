@@ -508,6 +508,106 @@ pdf_info_for() {
     "$PDFUTIL" info "$1" 2>/dev/null
 }
 
+# Echo how a PDF is protected, one of:
+#   locked      it needs a password to open
+#   restricted  it opens without one, but it is encrypted: an owner password
+#               sets what may be done with it
+#   none        it is not encrypted
+# or "" when pdfutil cannot read it at all (corrupt, not a PDF).
+#
+# "Opens without a password" is exactly a PDF whose user password is empty:
+# PDFKit tries the empty password on open, so `info` reads encrypted: true and
+# locked: false. Nobody can be expected to know a PDF has an empty password,
+# which is why the app works it out and says so instead of asking for one.
+#
+# Costs one `info`, which pdf_is_locked caches for the pdf_info_for below.
+# Arguments: path
+pdf_protection() {
+    pdf_is_locked "$1"
+    local locked_status=$?
+    if [ "$locked_status" -eq 0 ]; then
+        echo "locked"
+        return
+    fi
+    local info="$(pdf_info_for "$1")"
+    [ -n "$info" ] || return 0
+    local encrypted="$(printf '%s\n' "$info" | /usr/bin/awk -F': ' '$1 == "encrypted" { print $2; exit }')"
+    if [ "$encrypted" = "true" ]; then
+        echo "restricted"
+    else
+        echo "none"
+    fi
+}
+
+# Echo the permission flags `pdfutil info` prints for a PDF, as ", "-separated
+# names: printing, high-quality-printing, changes, assembly, copying,
+# accessibility, commenting, forms. These are PDFKit's flags, which are what
+# pdfutil enforces. "" when the PDF cannot be read.
+#
+# Each call costs an `info` unless pdf_is_locked has just read this same file in
+# the calling shell (a command substitution cannot fill that cache for its
+# caller), so read the flags once and test them with flags_allow.
+# Arguments: path
+pdf_permission_flags() {
+    pdf_info_for "$1" | /usr/bin/awk -F': ' '$1 == "permissions" { print $2; exit }'
+}
+
+# Return 0 when a flag list from pdf_permission_flags includes a flag. An empty
+# list - a PDF that could not be read - allows everything, so the run reaches
+# the real error instead of a guard inventing one.
+# Arguments: flags, flag
+flags_allow() {
+    [ -n "$1" ] || return 0
+    case ", $1," in
+        *", $2,"*) return 0 ;;
+    esac
+    return 1
+}
+
+# Echo, in words, what one permission flag allows ("removing or rotating pages").
+# Arguments: flag
+permission_words() {
+    case "$1" in
+        assembly)              echo "removing or rotating pages" ;;
+        changes)               echo "editing" ;;
+        copying)               echo "copying text" ;;
+        commenting)            echo "adding comments" ;;
+        forms)                 echo "filling in forms" ;;
+        printing)              echo "printing" ;;
+        high-quality-printing) echo "printing at full resolution" ;;
+    esac
+}
+
+# Echo what a flag list does not allow, in words and in a fixed order, for
+# example "removing or rotating pages, copying text and adding comments". ""
+# when it allows everything the app names.
+#
+# Accessibility is left out: it only matters to screen readers, and naming it
+# would lengthen every sentence for nothing the user asked about. Full-resolution
+# printing is named only when printing itself is allowed, since "printing" says
+# the rest.
+# Arguments: flags (from pdf_permission_flags)
+restriction_words() {
+    local missing=""
+    local flag
+    for flag in assembly changes copying commenting forms printing high-quality-printing; do
+        if [ "$flag" = "high-quality-printing" ]; then
+            flags_allow "$1" printing || continue
+        fi
+        flags_allow "$1" "$flag" && continue
+        missing="${missing}$(permission_words "$flag")
+"
+    done
+    printf '%s' "$missing" | /usr/bin/awk '
+        NF { item[++n] = $0 }
+        END {
+            for (i = 1; i <= n; i++) {
+                if (i > 1) printf (i == n ? " and " : ", ")
+                printf "%s", item[i]
+            }
+        }'
+}
+
 # Trim leading and trailing whitespace. Only the ends: pdfutil's parser trims
 # each term and each endpoint the same way, so "1 - 3" is a valid range there.
 # Deleting interior whitespace instead would turn "1 2" into page 12, a page

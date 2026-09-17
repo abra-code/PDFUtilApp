@@ -154,7 +154,10 @@
     {
       "NAME": "PDFUtil",
       "COMMAND_ID": "PDFUtil.operation.changed",
-      "EXECUTION_MODE": "exe_script_file"
+      "EXECUTION_MODE": "exe_script_file",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS": ""
+      }
     },
     {
       "NAME": "PDFUtil",

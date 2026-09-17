@@ -184,6 +184,19 @@ do {
               withOptions: [.userPasswordOption: "test", .ownerPasswordOption: "owner"])
 }
 
+// restricted.pdf - text.pdf protected by an owner password ("owner") alone: it
+// opens without a password (an empty user password), but allows only printing
+// and copying - no page assembly, changes, commenting or form filling.
+do {
+    guard let doc = PDFDocument(url: out("text.pdf")) else { fatalError("reopen text.pdf") }
+    let allowed = [PDFAccessPermissions.allowsLowQualityPrinting, .allowsHighQualityPrinting,
+                   .allowsContentCopying, .allowsContentAccessibility]
+        .reduce(UInt(0)) { $0 | $1.rawValue }
+    doc.write(to: out("restricted.pdf"),
+              withOptions: [.userPasswordOption: "", .ownerPasswordOption: "owner",
+                            .accessPermissionsOption: NSNumber(value: allowed)])
+}
+
 // photo.png - a standalone image. The file list is mixed-type as of Stage 8, so
 // classify_file has to recognize this as "image" and Build PDF from Images has
 // to be able to consume it. Deliberately WIDER than reduce's 2400 px cap so a

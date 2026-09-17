@@ -23,6 +23,7 @@ image_pdf="$(fixture image.pdf)"
 outline_pdf="$(fixture outline.pdf)"
 form_pdf="$(fixture form.pdf)"
 locked_pdf="$(fixture locked.pdf)"
+restricted_pdf="$(fixture restricted.pdf)"
 photo_png="$(fixture photo.png)"
 notes_txt="$(fixture notes.txt)"
 mislabeled_pdf="$(fixture mislabeled.pdf)"
@@ -528,15 +529,15 @@ check "inspect has no panel any more" "$GROUP_PLACEHOLDER_ID" \
 # --------------------------------------------------------------------------
 section "settings the panel must refuse before a destination is asked for"
 # --------------------------------------------------------------------------
-# An empty password is a usage error to pdfutil, not a blank password, so it has
-# to be caught before the user is made to name an output file.
 problem_for() { pdfutil_handler_call PDFUtil.start.batch.sh settings_problem "$1"; }
 
+# An empty Remove Password field is a real request: a PDF that opens without a
+# password needs none. Which files do need one is the router's per-file check
+# (30-router), not a settings problem.
 reset_document
-check "an empty decrypt password is refused" "yes" \
-    "$([ -n "$(problem_for decrypt)" ] && echo yes || echo no)"
+check "an empty decrypt password is not a settings problem" "" "$(problem_for decrypt)"
 omc_control "$DEC_PASSWORD_ID" "pw"
-check "a supplied decrypt password is fine" "" "$(problem_for decrypt)"
+check "nor is a supplied one" "" "$(problem_for decrypt)"
 
 # Set Password confirms each password twice; a mismatch has to be caught here
 # rather than after the user has named an output file.
@@ -581,5 +582,42 @@ reset_document
 omc_control "$DEC_PASSWORD_ID" "hunter2"
 check "decrypt asks for one too" "yes" \
     "$(contains "$(pdfutil_args_for decrypt)" "stdin")"
+
+# An empty field sends no password at all: pdfutil refuses an empty stdin
+# password, and a PDF that opens without one needs none.
+reset_document
+check "an empty decrypt field sends no password" "no" \
+    "$(contains "$(pdfutil_args_for decrypt)" "password")"
+check "and feeds nothing on stdin" "" \
+    "$(pdfutil_eval 'build_pdfutil_args decrypt >/dev/null 2>&1; printf "%s" "$PDFUTIL_STDIN_PW"')"
+
+# --------------------------------------------------------------------------
+section "a PDF's protection is read, not asked for"
+# --------------------------------------------------------------------------
+# A PDF that opens without a password but is encrypted has an empty user
+# password; only its owner password restricts it. Nobody can be expected to know
+# that, so the app has to tell the three cases apart itself.
+check "a plain pdf is not protected" "none" "$(pdfutil_call pdf_protection "$text_pdf")"
+check "a password-protected pdf is locked" "locked" "$(pdfutil_call pdf_protection "$locked_pdf")"
+check "an owner-password pdf is restricted" "restricted" "$(pdfutil_call pdf_protection "$restricted_pdf")"
+check "a file that is not a pdf has no protection to report" "" \
+    "$(pdfutil_call pdf_protection "$notes_txt")"
+
+restricted_flags="$(pdfutil_call pdf_permission_flags "$restricted_pdf")"
+check "the restricted fixture withholds assembly" "no" \
+    "$(pdfutil_call flags_allow "$restricted_flags" assembly && echo yes || echo no)"
+check "and allows copying" "yes" \
+    "$(pdfutil_call flags_allow "$restricted_flags" copying && echo yes || echo no)"
+check "a flag name that is only part of another does not match" "no" \
+    "$(pdfutil_call flags_allow "printing, high-quality-printing" quality && echo yes || echo no)"
+check "an unreadable pdf allows everything" "yes" \
+    "$(pdfutil_call flags_allow "" assembly && echo yes || echo no)"
+check "what it does not allow, in words" \
+    "removing or rotating pages, editing, adding comments and filling in forms" \
+    "$(pdfutil_call restriction_words "$restricted_flags")"
+check "a plain pdf restricts nothing" "" \
+    "$(pdfutil_call restriction_words "$(pdfutil_call pdf_permission_flags "$text_pdf")")"
+check "full-resolution printing is named when only it is withheld" "printing at full resolution" \
+    "$(pdfutil_call restriction_words "printing, changes, assembly, copying, accessibility, commenting, forms")"
 
 omctest_end

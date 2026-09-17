@@ -3,6 +3,7 @@
 
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.files.sh"
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 selected_path="$OMC_ACTIONUI_TABLE_10_COLUMN_3_VALUE"
 
@@ -13,9 +14,12 @@ if [ -n "$selected_path" ]; then
     # so a half-path left by a filename containing a newline drops out here
     # instead of being re-emitted forever.
     buffer=""
+    kept_paths=""
     while IFS= read -r file_path; do
         if [ -n "$file_path" ] && [ -e "$file_path" ] && [ "$file_path" != "$selected_path" ]; then
             buffer="${buffer}$(row_for_path "$file_path")
+"
+            kept_paths="${kept_paths}${file_path}
 "
         fi
     done <<< "$all_paths"
@@ -26,6 +30,7 @@ if [ -n "$selected_path" ]; then
     else
         "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
     fi
+    refresh_decrypt_panel "$kept_paths"
 fi
 
 "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "PDFUtil.files.selection.changed"

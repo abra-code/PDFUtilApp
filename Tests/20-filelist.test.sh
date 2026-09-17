@@ -296,6 +296,78 @@ check "a first add offers only Down" "0 1" \
     "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
 
 # --------------------------------------------------------------------------
+section "a pdf that opens without a password but is protected says so"
+# --------------------------------------------------------------------------
+reset_document
+restricted="$(fixture restricted.pdf)"
+omc_dialog_answer choose_object "$restricted"
+run_with_list PDFUtil.add.files
+select_file "$restricted"
+run_with_list PDFUtil.files.selection.changed
+check "the summary says it opens without a password" "yes" \
+    "$(contains "$(summary)" "Encrypted: Yes, but it opens without a password")"
+check "and what it does not allow" "yes" \
+    "$(contains "$(summary)" "Does not allow: removing or rotating pages, editing, adding comments and filling in forms")"
+check "and that removing it needs no password" "yes" \
+    "$(contains "$(summary)" "no password is needed")"
+# The control: a plain PDF says none of this.
+reset_document
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check "a plain pdf is not encrypted" "yes" "$(contains "$(summary)" "Encrypted: No")"
+check "and names no restrictions" "no" "$(contains "$(summary)" "Does not allow")"
+
+# --------------------------------------------------------------------------
+section "the Remove Password notice describes the listed pdfs"
+# --------------------------------------------------------------------------
+decrypt_notice() { ui_value "$NOTICE_DECRYPT_ID"; }
+decrypt_prompt() { ui_prop "$DEC_PASSWORD_ID" prompt; }
+
+reset_document
+omc_control "$OPERATION_PICKER_ID" decrypt
+omc_dialog_answer choose_object "$restricted"
+run_with_list PDFUtil.add.files
+check "one restricted pdf: no password needed" "yes" \
+    "$(contains "$(decrypt_notice)" "No password needed: this PDF opens without one, but it does not allow removing or rotating pages")"
+check "and the field says so" "not needed - this PDF opens without one" "$(decrypt_prompt)"
+
+omc_dialog_answer choose_object "$locked"
+run_with_list PDFUtil.add.files
+check "adding a locked pdf names it" "yes" \
+    "$(contains "$(decrypt_notice)" "\"locked.pdf\" needs the password that opens it")"
+check "and says the other needs none" "yes" "$(contains "$(decrypt_notice)" "The other protected PDF opens without a password and needs none")"
+check "and the field asks for the password again" "the password that opens these PDFs" "$(decrypt_prompt)"
+
+chains_reset
+select_file "$locked"
+run_with_list PDFUtil.remove.selected
+check "removing the locked pdf goes back to no password needed" "yes" \
+    "$(contains "$(decrypt_notice)" "No password needed")"
+
+run_with_list PDFUtil.clear.all
+check "clearing the list restores the plain notice" "Saves an unlocked copy; the original is untouched." \
+    "$(decrypt_notice)"
+
+locked_copy="$OMCTEST_WORK/locked copy.pdf"
+/bin/cp "$locked" "$locked_copy"
+omc_dialog_answer choose_object "$locked
+$locked_copy"
+run_with_list PDFUtil.add.files
+check "two locked pdfs: both need the password" "Both PDFs need the password that opens them. Saves unlocked copies; the originals are untouched." \
+    "$(decrypt_notice)"
+run_with_list PDFUtil.clear.all
+
+# Picking the operation with PDFs already listed describes them too.
+reset_document
+omc_dialog_answer choose_object "$text_pdf"
+run_with_list PDFUtil.add.files
+check "another operation leaves the notice alone" "" "$(decrypt_notice)"
+omc_control "$OPERATION_PICKER_ID" decrypt
+run_with_list PDFUtil.operation.changed
+check "picking Remove Password says there is nothing to remove" \
+    "This PDF is not protected, so there is nothing to remove." "$(decrypt_notice)"
+
+# --------------------------------------------------------------------------
 section "the engine only gets variables the manifest actually declares"
 # --------------------------------------------------------------------------
 # The harness is more generous than the engine: it exports whatever a test sets,

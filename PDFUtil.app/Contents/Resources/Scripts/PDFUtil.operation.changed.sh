@@ -15,3 +15,6 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.sh"
 source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.PDFUtil.panels.sh"
 
 apply_operation_panel "$(current_operation)"
+# Remove Password describes the listed PDFs' protection; every other panel
+# returns at once.
+refresh_decrypt_panel "$OMC_ACTIONUI_TABLE_10_COLUMN_3_ALL_ROWS"

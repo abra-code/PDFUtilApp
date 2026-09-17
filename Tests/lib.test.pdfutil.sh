@@ -381,7 +381,9 @@ reset_document() {
 # same generator ./test.sh uses. Generate rather than restate: a second
 # generator would be a second set of fixtures to keep in step.
 ensure_fixtures() {
-    local marker="$OMCTEST_FIXTURES/text.pdf"
+    # The newest fixture, so a fixture set generated before it existed is
+    # regenerated rather than silently missing a file.
+    local marker="$OMCTEST_FIXTURES/restricted.pdf"
     [ -f "$marker" ] && return 0
     if [ ! -f "$OMCTEST_TESTS/make-fixtures.swift" ]; then
         printf 'lib.test.pdfutil: no fixtures and no Tests/make-fixtures.swift to build them\n' >&2

@@ -22,12 +22,14 @@ Engine: ${pdfutil_version:-pdfutil (missing!)}"
 # Open... panel selection handed off via the private pasteboard
 if [ -n "$OMC_OBJ_PATH" ]; then
     add_files_to_table "$OMC_OBJ_PATH"
+    refresh_decrypt_panel "$LIST_PATHS"
     select_first_or_resync
 else
     open_paths="$("$pasteboard_tool" "$OPEN_PATHS_PB_KEY" get)"
     if [ -n "$open_paths" ]; then
         "$pasteboard_tool" "$OPEN_PATHS_PB_KEY" set ""
         add_files_to_table "$open_paths"
+        refresh_decrypt_panel "$LIST_PATHS"
         select_first_or_resync
     fi
 fi
