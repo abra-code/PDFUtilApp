@@ -4,7 +4,7 @@
   "properties": {
     "columnVisibility": "all",
     "style": "balanced",
-    "frame": { "minWidth": 900, "minHeight": 560, "idealWidth": 1040, "idealHeight": 680 },
+    "frame": { "minWidth": 900, "minHeight": 740, "idealWidth": 1040, "idealHeight": 800 },
     "padding": { "top": 4 }
   },
   "sidebar": {
