@@ -281,6 +281,50 @@ check "no staging file survived in the destination" "0" \
     "$(/usr/bin/find "$dest" -maxdepth 1 -name '.pdfutil.*' | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
 
 # --------------------------------------------------------------------------
+section "a reduce that could not shrink the file says so"
+# --------------------------------------------------------------------------
+# The assembled pdf is a smooth gradient stored losslessly, which JPEG cannot
+# beat, so pdfutil declines its own result: exit 0, an unchanged copy, and one
+# line on stderr saying why. Before the note existed the summary read "OK ...
+# 104 KB -> 104 KB" and nothing else, which looks exactly like a reduce that is
+# broken. The size comparison is what keeps the two note checks honest - if a
+# future Quartz starts shrinking this file, it fails here rather than letting
+# "no note" pass for the wrong reason.
+reset_document
+seed_list "$assembled"
+omc_control "$OPERATION_PICKER_ID" reduce
+declined="$OMCTEST_WORK/declined.pdf"
+omc_dialog_answer save_as "$declined"
+run_with_list PDFUtil.run.single
+check_status "the runner succeeded" 0
+check_exists "an output was still written" "$declined"
+check "and it is the original, byte for byte" "same" \
+    "$(/usr/bin/cmp -s "$assembled" "$declined" && echo same || echo different)"
+check "the summary still reports the file as handled" "yes" \
+    "$(contains "$(summary)" "OK assembled.pdf")"
+check "and explains why nothing changed" "yes" \
+    "$(contains "$(summary)" "could not be made smaller")"
+check "naming the copy for what it is" "yes" \
+    "$(contains "$(summary)" "unchanged copy of the original")"
+
+# The batch runner assembles its own summary, so it needs its own look.
+reset_document
+dest="$OMCTEST_WORK/declined-batch"
+/bin/mkdir -p "$dest"
+seed_list "$assembled" "$(fixture image.pdf)"
+omc_control "$OPERATION_PICKER_ID" reduce
+omc_dialog_answer choose_folder "$dest"
+run_with_list PDFUtil.run.batch
+check_status "the batch succeeded" 0
+check "the batch summary carries the same explanation" "yes" \
+    "$(contains "$(summary)" "could not be made smaller")"
+# image.pdf is a real raster scan, which reduce does shrink, so exactly one
+# file earns the note. Not text.pdf: with nothing to recompress, the redraw's
+# overhead makes it 0.3% larger and it is declined as well.
+check "only for the file it applies to" "1" \
+    "$(summary | /usr/bin/grep -c 'could not be made smaller')"
+
+# --------------------------------------------------------------------------
 section "a copy that drops an open-freely pdf's restrictions says so"
 # --------------------------------------------------------------------------
 # restricted.pdf opens without a password; its owner password forbids page

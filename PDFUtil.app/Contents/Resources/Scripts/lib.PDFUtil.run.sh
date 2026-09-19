@@ -335,6 +335,42 @@ inputs_restrictions_note() {
     fi
 }
 
+# Echo a sentence for the summary when Reduce File Size declined its own result,
+# or "" otherwise.
+#
+# pdfutil exits 0 in that case and writes an unchanged copy of the input, which
+# is the right outcome and a baffling one to look at: the summary said OK, the
+# sizes matched, and nothing said why. Its one explanation is on stderr -
+#   reduce: 21 page(s), 13076516 bytes, kept the original (recompression
+#   produced 16549967 bytes, 26.6% larger)
+# - and the runners read that stream only after a failure. Two kinds of file land
+# here. One has little or nothing to recompress, so the redraw's own overhead is
+# all that changes: a text-only PDF comes out a fraction of a percent larger.
+# The other stores its pages as lossless images of computer-rendered text, which
+# Flate packs far better than JPEG can however much the image is downsampled: a
+# 21-page signed lease came out 26.6% larger. The note names both, because the
+# percentage alone does not say which one the user is looking at.
+#
+# Matched anywhere on the line, not at its start: system frameworks write to the
+# same stream without a trailing newline, so their noise can share the line.
+# The percentage is dropped unless it reads as a positive number - pdfutil
+# prints "0.0% larger" for an equal size and a negative figure when it could
+# not measure the result, and neither belongs in a sentence.
+# Arguments: pdfutil's combined output
+reduce_declined_note() {
+    local line="$(printf '%s\n' "$1" | /usr/bin/grep -m1 'kept the original')"
+    [ -n "$line" ] || return 0
+    local percent="$(printf '%s\n' "$line" | /usr/bin/sed -n 's/.* \([0-9][0-9.]*\)% larger).*/\1/p')"
+    case "$percent" in
+        "" | 0 | 0.0) percent="" ;;
+    esac
+    if [ -n "$percent" ]; then
+        echo "This file could not be made smaller: the recompressed version came out ${percent}% larger, so the output is an unchanged copy of the original. That is typical of a PDF with few images to shrink, or one whose pages are lossless images of text, which JPEG cannot beat."
+    else
+        echo "This file could not be made smaller: the recompressed version was no smaller, so the output is an unchanged copy of the original."
+    fi
+}
+
 # Shared body of the three Save As runners - PDFUtil.run.single (PDF),
 # PDFUtil.run.text (.txt) and PDFUtil.run.image (one rendered page). They differ
 # only in the Save panel's default file name, which is declared per command in
@@ -466,8 +502,13 @@ Output: ${first_part} and $((moved - 1)) more"
         note="$(restrictions_note "$input_file" "$output_file")"
     fi
 
+    # Exit 0 does not mean the file got smaller - see reduce_declined_note.
+    local declined="$(reduce_declined_note "$output")"
+
     set_summary "OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")
-Output: $output_file${note:+
+Output: $output_file${declined:+
+
+Note: $declined}${note:+
 
 Note: $note}"
 }

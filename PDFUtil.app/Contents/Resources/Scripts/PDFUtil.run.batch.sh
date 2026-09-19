@@ -238,8 +238,11 @@ FAILED ${filename}: could not write ${output_name}"
     if [ "$PDFUTIL_OUTPUT_KIND" = "pdf" ]; then
         file_note="$(restrictions_note "$file_path" "$output_file")"
     fi
+    # Exit 0 does not mean the file got smaller - see reduce_declined_note.
+    declined_note="$(reduce_declined_note "$output")"
     details="${details}
-OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")${rename_note}${file_note:+
+OK ${filename}: $(format_size "$orig_size") -> $(format_size "$new_size")${rename_note}${declined_note:+
+   Note: $declined_note}${file_note:+
    Note: $file_note}"
 done
 

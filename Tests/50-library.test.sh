@@ -620,4 +620,30 @@ check "a plain pdf restricts nothing" "" \
 check "full-resolution printing is named when only it is withheld" "printing at full resolution" \
     "$(pdfutil_call restriction_words "printing, changes, assembly, copying, accessibility, commenting, forms")"
 
+# --------------------------------------------------------------------------
+section "a reduce that declined its own result is explained"
+# --------------------------------------------------------------------------
+# pdfutil exits 0 and returns an unchanged copy when recompression would have
+# grown the file; its one explanation is a stderr line the runners used to
+# discard. The strings below are pdfutil's own format.
+_declined="reduce: 21 page(s), 13076516 bytes, kept the original (recompression produced 16549967 bytes, 26.6% larger)"
+check "the note carries pdfutil's percentage" "yes" \
+    "$(contains "$(pdfutil_call reduce_declined_note "$_declined")" "26.6% larger")"
+check "an ordinary reduce earns no note" "" \
+    "$(pdfutil_call reduce_declined_note "reduce: 3 page(s), 900000 -> 300000 bytes (66.7% smaller)")"
+check "nor does silence" "" "$(pdfutil_call reduce_declined_note "")"
+# Frameworks write to the same stream without a newline, so their noise can
+# land on the front of pdfutil's line.
+check "framework noise sharing the line does not hide it" "yes" \
+    "$(contains "$(pdfutil_call reduce_declined_note "sysctlbyname for kern.hv_vmm_present failed with status -1$_declined")" "26.6% larger")"
+# An equal size prints 0.0%, an unmeasurable result a negative figure; neither
+# is a number worth quoting, but the copy is still unchanged and still needs
+# saying.
+_equal="$(pdfutil_call reduce_declined_note "reduce: 1 page(s), 500 bytes, kept the original (recompression produced 500 bytes, 0.0% larger)")"
+check "an equal size is explained without a percentage" "yes no" \
+    "$(contains "$_equal" "unchanged copy") $(contains "$_equal" "%")"
+_unmeasured="$(pdfutil_call reduce_declined_note "reduce: 1 page(s), 500 bytes, kept the original (recompression produced 0 bytes, -100.0% larger)")"
+check "and so is a result that could not be measured" "yes no" \
+    "$(contains "$_unmeasured" "unchanged copy") $(contains "$_unmeasured" "%")"
+
 omctest_end
