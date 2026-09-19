@@ -18,6 +18,7 @@
         "type": "Table",
         "id": 10,
         "properties": {
+          "scrollContentBackground": "hidden",
           "columns": ["", "Files"],
           "columnTypes": [
             { "viewType": "Image", "dataInterpretation": "systemName" },
